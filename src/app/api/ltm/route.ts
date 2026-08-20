@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 
   const data = await query(
     `SELECT id, content, content_hash, scope, store, kind, provenance,
-            session_id, write_origin, created_at, updated_at,
+            audience, session_id, write_origin, created_at, updated_at,
             embedding IS NOT NULL as has_embedding
      FROM vania_ltm
      WHERE ${where}

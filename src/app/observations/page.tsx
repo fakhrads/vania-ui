@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
 import { Sidebar } from "@/components/sidebar";
+import { Guard } from "@/components/guard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,8 +52,6 @@ export default function ObservationsPage() {
     fetchData();
   }, [token, authLoading, router, fetchData]);
 
-  if (authLoading || !token) return null;
-
   const totalPages = Math.ceil(total / 25);
 
   const getStatusBadge = (item: ObsItem) => {
@@ -66,7 +65,9 @@ export default function ObservationsPage() {
   };
 
   return (
+    <Guard>
     <div className="flex h-screen overflow-hidden">
+      <div className="mesh-bg" />
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8">
         <div className="space-y-6">
@@ -84,7 +85,7 @@ export default function ObservationsPage() {
                 placeholder="Cari claim..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="pl-9 bg-zinc-900 border-zinc-800"
+                className="pl-9 glass border-white/[0.07]"
               />
             </div>
             <div className="flex gap-1">
@@ -105,7 +106,7 @@ export default function ObservationsPage() {
           {loading ? (
             <div className="space-y-2">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-24 bg-zinc-900 rounded-lg animate-pulse" />
+                <div key={i} className="h-24 glass rounded-2xl animate-pulse" />
               ))}
             </div>
           ) : items.length === 0 ? (
@@ -113,7 +114,7 @@ export default function ObservationsPage() {
           ) : (
             <div className="space-y-2">
               {items.map((item) => (
-                <Card key={item.id} className="bg-zinc-900 border-zinc-800">
+                <Card key={item.id} className="glass border-white/[0.07]">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
@@ -161,5 +162,6 @@ export default function ObservationsPage() {
         </div>
       </main>
     </div>
+    </Guard>
   );
 }

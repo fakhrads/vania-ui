@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
 import { Sidebar } from "@/components/sidebar";
+import { Guard } from "@/components/guard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,8 +26,6 @@ export default function SearchPage() {
   const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
 
-  if (authLoading || !token) return null;
-
   const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
@@ -46,7 +45,9 @@ export default function SearchPage() {
   };
 
   return (
+    <Guard>
     <div className="flex h-screen overflow-hidden">
+      <div className="mesh-bg" />
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8">
         <div className="space-y-6">
@@ -61,7 +62,7 @@ export default function SearchPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="flex-1 bg-zinc-900 border-zinc-800 text-base"
+              className="flex-1 glass border-white/[0.07] text-base"
             />
             <Button onClick={handleSearch} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
@@ -81,7 +82,7 @@ export default function SearchPage() {
                   </div>
                   <div className="space-y-2">
                     {results.inbox.map((r, i) => (
-                      <Card key={`inbox-${i}`} className="bg-zinc-900 border-zinc-800">
+                      <Card key={`inbox-${i}`} className="glass border-white/[0.07]">
                         <CardContent className="p-3">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge className="bg-blue-950 text-blue-400 text-xs">inbox</Badge>
@@ -105,7 +106,7 @@ export default function SearchPage() {
                   </div>
                   <div className="space-y-2">
                     {results.observations.map((r, i) => (
-                      <Card key={`obs-${i}`} className="bg-zinc-900 border-zinc-800">
+                      <Card key={`obs-${i}`} className="glass border-white/[0.07]">
                         <CardContent className="p-3">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge className="bg-purple-950 text-purple-400 text-xs">observations</Badge>
@@ -130,7 +131,7 @@ export default function SearchPage() {
                   </div>
                   <div className="space-y-2">
                     {results.ltm.map((r, i) => (
-                      <Card key={`ltm-${i}`} className="bg-zinc-900 border-zinc-800">
+                      <Card key={`ltm-${i}`} className="glass border-white/[0.07]">
                         <CardContent className="p-3">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge className="bg-amber-950 text-amber-400 text-xs">ltm</Badge>
@@ -163,5 +164,6 @@ export default function SearchPage() {
         </div>
       </main>
     </div>
+    </Guard>
   );
 }

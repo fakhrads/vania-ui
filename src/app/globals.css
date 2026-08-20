@@ -128,3 +128,63 @@
     @apply font-sans;
   }
 }
+/* ── Sistem kaca (glassmorphism) ─────────────────────────────────────────
+   Satu bahasa visual: panel tembus pandang di atas latar gradien gelap.
+   Dibangun dari utilitas Tailwind murni — tanpa dependensi baru, supaya
+   tidak berisiko bentrok dengan Next 16 / Tailwind v4.                     */
+
+@layer utilities {
+  .glass {
+    background: linear-gradient(
+      160deg,
+      color-mix(in oklab, white 7%, transparent),
+      color-mix(in oklab, white 2.5%, transparent)
+    );
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid color-mix(in oklab, white 10%, transparent);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, white 12%, transparent) inset,
+      0 20px 50px -24px rgb(0 0 0 / 0.9);
+  }
+  .glass-hover {
+    transition: border-color .25s ease, transform .25s ease, box-shadow .25s ease;
+  }
+  .glass-hover:hover {
+    border-color: color-mix(in oklab, white 18%, transparent);
+    transform: translateY(-2px);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, white 16%, transparent) inset,
+      0 28px 60px -24px rgb(0 0 0 / 0.95);
+  }
+  .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+}
+
+/* Latar: gradien mesh statis — tidak beranimasi supaya tidak menyedot GPU
+   pada dasbor yang dibiarkan terbuka berjam-jam. */
+.mesh-bg {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 12% -10%, rgb(56 189 248 / 0.16), transparent 60%),
+    radial-gradient(50rem 36rem at 88% 8%,  rgb(168 85 247 / 0.14), transparent 60%),
+    radial-gradient(46rem 34rem at 50% 108%, rgb(16 185 129 / 0.12), transparent 60%),
+    #08080b;
+}
+.mesh-bg::after {
+  content: ""; position: absolute; inset: 0;
+  background-image: radial-gradient(rgb(255 255 255 / 0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(75% 60% at 50% 40%, black, transparent);
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 var(--ring-color); }
+  70%  { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.live-dot { animation: pulse-ring 2.4s cubic-bezier(.4,0,.6,1) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-hover, .live-dot { transition: none; animation: none; }
+  .glass-hover:hover { transform: none; }
+}

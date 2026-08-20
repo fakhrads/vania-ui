@@ -3,15 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { Brain, LayoutDashboard, Mail, Eye, Search, ClipboardList, LogOut } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Activity, Brain, Mail, Eye, Search, ClipboardList, LogOut, ShieldCheck,
+} from "lucide-react";
 
 const links = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/", label: "Kesehatan", icon: Activity },
+  { href: "/ltm", label: "Korpus", icon: Brain },
+  { href: "/ops", label: "Audit", icon: ClipboardList },
+  { href: "/search", label: "Cari", icon: Search },
   { href: "/inbox", label: "Inbox", icon: Mail },
-  { href: "/observations", label: "Observations", icon: Eye },
-  { href: "/ltm", label: "Long-Term Memory", icon: Brain },
-  { href: "/search", label: "Search", icon: Search },
-  { href: "/ops", label: "Audit Log", icon: ClipboardList },
+  { href: "/observations", label: "Observasi", icon: Eye },
 ];
 
 export function Sidebar() {
@@ -19,51 +22,52 @@ export function Sidebar() {
   const { logout } = useAuth();
 
   return (
-    <aside className="w-56 border-r border-zinc-800 bg-zinc-900/50 flex flex-col shrink-0 hidden lg:flex">
-      {/* Logo */}
-      <div className="p-4 border-b border-zinc-800">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600/20">
-            <Brain className="h-4 w-4 text-blue-400" />
+    <aside className="hidden w-60 shrink-0 flex-col p-3 lg:flex">
+      <div className="glass flex h-full flex-col rounded-3xl p-3">
+        <div className="flex items-center gap-3 px-2 py-3">
+          <div className="flex size-9 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-sky-400/25 to-violet-500/20">
+            <Brain className="size-4 text-sky-300" />
           </div>
-          <div>
-            <p className="text-sm font-semibold">Vania Memory</p>
-            <p className="text-[10px] text-zinc-600">memory manager</p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-zinc-100">Vania Memory</p>
+            <p className="text-[10px] text-zinc-500">panel pemantauan</p>
           </div>
         </div>
-      </div>
 
-      {/* Nav Links */}
-      <nav className="flex-1 p-2 space-y-0.5">
-        {links.map((link) => {
-          const Icon = link.icon;
-          const active = pathname === link.href;
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                active
-                  ? "bg-zinc-800 text-zinc-100"
-                  : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {link.label}
-            </Link>
-          );
-        })}
-      </nav>
+        <nav className="mt-3 flex-1 space-y-1">
+          {links.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-colors",
+                  active
+                    ? "border border-white/10 bg-white/[0.07] text-zinc-100"
+                    : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
+                )}
+              >
+                <Icon className={cn("size-4", active && "text-sky-300")} />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
 
-      {/* Logout */}
-      <div className="p-2 border-t border-zinc-800">
-        <button
-          onClick={logout}
-          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 w-full"
-        >
-          <LogOut className="h-4 w-4" />
-          Logout
-        </button>
+        <div className="space-y-2 border-t border-white/[0.07] pt-3">
+          <div className="flex items-center gap-2 rounded-2xl bg-white/[0.03] px-3 py-2 text-[11px] text-zinc-500">
+            <ShieldCheck className="size-3.5 shrink-0 text-emerald-400/70" />
+            <span>Baca-saja</span>
+          </div>
+          <button
+            onClick={logout}
+            className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-zinc-500 transition-colors hover:bg-white/[0.04] hover:text-zinc-300"
+          >
+            <LogOut className="size-4" />
+            Keluar
+          </button>
+        </div>
       </div>
     </aside>
   );

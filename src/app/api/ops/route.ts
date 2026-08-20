@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   const total = Number(countRes.rows[0].total);
 
   const data = await query(
-    `SELECT id, ts, action, target, status, error_msg, content_hash,
+    `SELECT id, ts, action, target, status, error_msg, content_hash, source,
             matched_row_id, rows_added, rows_evicted, scope, session_id
      FROM vania_ltm_ops
      ORDER BY ts DESC
