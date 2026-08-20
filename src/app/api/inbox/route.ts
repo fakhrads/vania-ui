@@ -15,41 +15,43 @@ export async function GET(req: NextRequest) {
   const search = sp.get("q") || null;
   const offset = (page - 1) * perPage;
 
-  let where = "1=1";
-  const params: any[] = [];
-  let idx = 1;
+  try {
+    let where = "1=1";
+    const params: any[] = [];
+    let idx = 1;
 
-  if (source) {
-    where += ` AND source = $${idx++}`;
-    params.push(source);
+    if (source) {
+      where += ` AND source = $${idx++}`;
+      params.push(source);
+    }
+    if (search) {
+      where += ` AND message ILIKE $${idx}`;
+      params.push(`%${search}%`);
+      idx++;
+    }
+
+    const countRes = await query(`SELECT count(*) as total FROM vania_inbox_legacy WHERE ${where}`, params);
+    const total = Number(countRes.rows[0].total);
+
+    const data = await query(
+      `SELECT id, source, message, meta, created_at
+       FROM vania_inbox_legacy
+       WHERE ${where}
+       ORDER BY created_at DESC
+       LIMIT $${idx++} OFFSET $${idx++}`,
+      [...params, perPage, offset]
+    );
+
+    const sources = await query(
+      `SELECT source, count(*) as count FROM vania_inbox_legacy GROUP BY source ORDER BY count DESC`
+    );
+
+    return NextResponse.json({
+      items: data.rows,
+      sources: sources.rows,
+      pagination: { page, perPage, total, totalPages: Math.ceil(total / perPage) },
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
-  if (search) {
-    where += ` AND message ILIKE $${idx}`;
-    params.push(`%${search}%`);
-    idx++;
-  }
-
-  const countRes = await query(`SELECT count(*) as total FROM vania_inbox_legacy WHERE ${where}`, params);
-  const total = Number(countRes.rows[0].total);
-
-  const data = await query(
-    `SELECT id, source, message, meta, created_at,
-            embedding IS NOT NULL as has_embedding,
-            pg_column_size(embedding) as embedding_size
-     FROM vania_inbox_legacy
-     WHERE ${where}
-     ORDER BY created_at DESC
-     LIMIT $${idx++} OFFSET $${idx++}`,
-    [...params, perPage, offset]
-  );
-
-  const sources = await query(
-    `SELECT source, count(*) as count FROM vania_inbox_legacy GROUP BY source ORDER BY count DESC`
-  );
-
-  return NextResponse.json({
-    items: data.rows,
-    sources: sources.rows,
-    pagination: { page, perPage, total, totalPages: Math.ceil(total / perPage) },
-  });
 }
