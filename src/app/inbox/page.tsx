@@ -12,10 +12,11 @@ import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 interface InboxItem {
-  id: string;
-  sender: string;
-  content: string;
-  meta: any;
+  id: number;
+  turn_text: string;
+  turn_at: string;
+  processed: boolean;
+  max_sim: number;
   created_at: string;
 }
 
@@ -23,10 +24,8 @@ export default function InboxPage() {
   const { token, loading: authLoading } = useAuth();
   const router = useRouter();
   const [items, setItems] = useState<InboxItem[]>([]);
-  const [sources, setSources] = useState<{ source: string; count: number }[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [sourceFilter, setSourceFilter] = useState("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -34,16 +33,14 @@ export default function InboxPage() {
     if (!token) return;
     setLoading(true);
     const sp = new URLSearchParams({ page: String(page), per_page: "25" });
-    if (sourceFilter) sp.set("sender", sourceFilter);
     if (search) sp.set("q", search);
 
     const res = await authFetch(`/api/inbox?${sp}`);
     const data = await res.json();
     setItems(data.items);
-    setSources(data.sources || []);
     setTotal(data.pagination.total);
     setLoading(false);
-  }, [page, sourceFilter, search, token]);
+  }, [page, search, token]);
 
   useEffect(() => {
     if (!authLoading && !token) { router.push("/login"); return; }
@@ -66,41 +63,16 @@ export default function InboxPage() {
             </p>
           </div>
 
-          {/* Filters */}
-          <div className="flex gap-2 flex-wrap">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-              <Input
-                placeholder="Cari pesan..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="pl-9 bg-zinc-900 border-zinc-800"
-              />
-            </div>
-            <div className="flex gap-1 flex-wrap">
-              <Button
-                size="sm"
-                variant={!sourceFilter ? "default" : "ghost"}
-                className={!sourceFilter ? "bg-blue-600" : "text-zinc-500"}
-                onClick={() => { setSourceFilter(""); setPage(1); }}
-              >
-                All
-              </Button>
-              {sources.map((s) => (
-                <Button
-                  key={s.source}
-                  size="sm"
-                  variant={sourceFilter === s.source ? "default" : "ghost"}
-                  className={sourceFilter === s.source ? "bg-blue-600" : "text-zinc-500"}
-                  onClick={() => { setSourceFilter(s.source); setPage(1); }}
-                >
-                  {s.source} ({s.count})
-                </Button>
-              ))}
-            </div>
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+            <Input
+              placeholder="Cari pesan..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="pl-9 bg-zinc-900 border-zinc-800"
+            />
           </div>
 
-          {/* Items */}
           {loading ? (
             <div className="space-y-2">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -117,19 +89,23 @@ export default function InboxPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-xs">
-                            {item.sender || "unknown"}
+                          <Badge variant="secondary" className={
+                            item.processed
+                              ? "bg-emerald-950 text-emerald-400 text-xs"
+                              : "bg-amber-950 text-amber-400 text-xs"
+                          }>
+                            {item.processed ? "processed" : "pending"}
                           </Badge>
+                          {item.max_sim !== null && (
+                            <Badge variant="secondary" className="bg-zinc-800 text-zinc-500 text-xs">
+                              max_sim: {item.max_sim?.toFixed(3)}
+                            </Badge>
+                          )}
                           <span className="text-xs text-zinc-600">
                             {new Date(item.created_at).toLocaleString("id-ID")}
                           </span>
                         </div>
-                        <p className="text-sm text-zinc-300 whitespace-pre-wrap">{item.content}</p>
-                        {item.meta && Object.keys(item.meta).length > 0 && (
-                          <p className="text-xs text-zinc-600 mt-1">
-                            meta: {JSON.stringify(item.meta).slice(0, 80)}
-                          </p>
-                        )}
+                        <p className="text-sm text-zinc-300 whitespace-pre-wrap">{item.turn_text}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -138,7 +114,6 @@ export default function InboxPage() {
             </div>
           )}
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-xs text-zinc-600">

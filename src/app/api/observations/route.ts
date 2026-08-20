@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     const total = Number(countRes.rows[0].total);
 
     const data = await query(
-      `SELECT id, claim, evidence, source, confidence,
+      `SELECT id, kind, claim, evidence, confidence,
               confirmed_at, contradicted_count, created_at
        FROM vania_obs_active
        WHERE ${where}

@@ -16,19 +16,16 @@ export async function POST(req: NextRequest) {
   const limit = Math.min(20, Math.max(1, rawLimit || 10));
 
   try {
-    // vania_inbox_legacy: sender, content
-    // vania_obs_active: source, claim
-    // vania_ltm: content, provenance, kind
     const [inboxRes, obsRes, ltmRes] = await Promise.all([
       query(
-        `SELECT id, left(content, 200) as preview, sender as source, created_at
+        `SELECT id, left(turn_text, 200) as preview, turn_at as created_at
          FROM vania_inbox_legacy
-         WHERE content ILIKE $1
+         WHERE turn_text ILIKE $1
          ORDER BY created_at DESC LIMIT $2`,
         [`%${q}%`, limit]
       ),
       query(
-        `SELECT id, left(claim, 200) as preview, source, confidence, created_at
+        `SELECT id, left(claim, 200) as preview, kind, confidence, created_at
          FROM vania_obs_active
          WHERE claim ILIKE $1
          ORDER BY created_at DESC LIMIT $2`,

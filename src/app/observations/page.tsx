@@ -12,14 +12,13 @@ import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, Search, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 
 interface ObsItem {
-  id: string;
+  id: number;
+  kind: string;
   claim: string;
-  evidence: any;
-  source: string;
+  evidence: string;
   confidence: number;
   confirmed_at: string | null;
   contradicted_count: number;
-  has_embedding: boolean;
   created_at: string;
 }
 
@@ -78,7 +77,6 @@ export default function ObservationsPage() {
             </p>
           </div>
 
-          {/* Filters */}
           <div className="flex gap-2 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
@@ -90,26 +88,20 @@ export default function ObservationsPage() {
               />
             </div>
             <div className="flex gap-1">
-              {[
-                { value: "", label: "All" },
-                { value: "confirmed", label: "Confirmed" },
-                { value: "contradicted", label: "Contradicted" },
-                { value: "pending", label: "Pending" },
-              ].map((f) => (
+              {["", "confirmed", "contradicted", "pending"].map((f) => (
                 <Button
-                  key={f.value}
+                  key={f}
                   size="sm"
-                  variant={statusFilter === f.value ? "default" : "ghost"}
-                  className={statusFilter === f.value ? "bg-blue-600" : "text-zinc-500"}
-                  onClick={() => { setStatusFilter(f.value); setPage(1); }}
+                  variant={statusFilter === f ? "default" : "ghost"}
+                  className={statusFilter === f ? "bg-blue-600" : "text-zinc-500"}
+                  onClick={() => { setStatusFilter(f); setPage(1); }}
                 >
-                  {f.label}
+                  {f || "All"}
                 </Button>
               ))}
             </div>
           </div>
 
-          {/* Items */}
           {loading ? (
             <div className="space-y-2">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -128,14 +120,11 @@ export default function ObservationsPage() {
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           {getStatusBadge(item)}
                           <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-xs">
-                            {item.source || "unknown"}
+                            {item.kind}
                           </Badge>
                           <Badge variant="secondary" className="bg-zinc-800 text-zinc-500 text-xs">
                             conf: {item.confidence?.toFixed(2) || "?"}
                           </Badge>
-                          {item.has_embedding && (
-                            <Badge className="bg-emerald-950 text-emerald-400 text-xs">embed</Badge>
-                          )}
                           <span className="text-xs text-zinc-600">
                             {new Date(item.created_at).toLocaleDateString("id-ID")}
                           </span>
@@ -143,7 +132,7 @@ export default function ObservationsPage() {
                         <p className="text-sm text-zinc-300">{item.claim}</p>
                         {item.evidence && (
                           <p className="text-xs text-zinc-600 mt-1">
-                            Evidence: {typeof item.evidence === "string" ? item.evidence.slice(0, 150) : JSON.stringify(item.evidence).slice(0, 150)}
+                            Evidence: {item.evidence.slice(0, 150)}
                           </p>
                         )}
                       </div>
@@ -154,7 +143,6 @@ export default function ObservationsPage() {
             </div>
           )}
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-xs text-zinc-600">
