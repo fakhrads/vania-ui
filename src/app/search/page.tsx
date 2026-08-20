@@ -9,13 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, ArrowRight } from "lucide-react";
+import { Search, Loader2, Inbox, Eye, Brain } from "lucide-react";
 
 interface SearchResults {
-  query: string;
-  ilike: any[];
-  vector: any[];
-  vectorError: string | null;
+  inbox: any[];
+  observations: any[];
+  ltm: any[];
+  total: number;
 }
 
 export default function SearchPage() {
@@ -36,7 +36,8 @@ export default function SearchPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, limit: 10 }),
       });
-      setResults(await res.json());
+      const data = await res.json();
+      setResults(data.results);
     } catch {
       setResults(null);
     } finally {
@@ -51,12 +52,12 @@ export default function SearchPage() {
         <div className="space-y-6">
           <div>
             <h1 className="text-2xl font-bold">Semantic Search</h1>
-            <p className="text-sm text-zinc-500 mt-1">pgvector cosine similarity vs ILIKE — berdampingan</p>
+            <p className="text-sm text-zinc-500 mt-1">Cari di semua tabel: inbox, observations, LTM</p>
           </div>
 
           <div className="flex gap-2">
             <Input
-              placeholder="Tulis pertanyaan... (contoh: 'siapa pacar fakhri')"
+              placeholder="Tulis pertanyaan..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -68,69 +69,88 @@ export default function SearchPage() {
           </div>
 
           {results && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* pgvector */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Badge className="bg-blue-950 text-blue-400">pgvector</Badge>
-                  <span className="text-xs text-zinc-500">cosine similarity</span>
-                </div>
-                {results.vectorError ? (
-                  <Card className="bg-zinc-900 border-zinc-800">
-                    <CardContent className="p-4 text-sm text-amber-400">{results.vectorError}</CardContent>
-                  </Card>
-                ) : results.vector.length === 0 ? (
-                  <p className="text-sm text-zinc-600 py-4">Tidak ada hasil</p>
-                ) : (
-                  <div className="space-y-2">
-                    {results.vector.map((r: any, i: number) => (
-                      <Card key={r.id || i} className="bg-zinc-900 border-zinc-800">
-                        <CardContent className="p-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5 mb-1">
-                                <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-xs">{r.kind}</Badge>
-                                <Badge variant="secondary" className="bg-zinc-800 text-zinc-500 text-xs">{r.provenance}</Badge>
-                              </div>
-                              <p className="text-sm text-zinc-300 whitespace-pre-wrap">{r.preview}</p>
-                            </div>
-                            <div className="shrink-0 text-right">
-                              <div className="text-lg font-mono font-bold text-blue-400">
-                                {(r.similarity * 100).toFixed(1)}%
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
+            <div className="space-y-6">
+              <p className="text-sm text-zinc-500">{results.total} hasil ditemukan</p>
 
-              {/* ILIKE */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Badge className="bg-zinc-800 text-zinc-300">ILIKE</Badge>
-                  <span className="text-xs text-zinc-500">exact text search</span>
-                </div>
-                {results.ilike.length === 0 ? (
-                  <p className="text-sm text-zinc-600 py-4">Tidak ada hasil</p>
-                ) : (
+              {/* Inbox Results */}
+              {results.inbox.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Inbox className="h-4 w-4 text-blue-400" />
+                    <h2 className="text-sm font-medium text-zinc-400">Inbox ({results.inbox.length})</h2>
+                  </div>
                   <div className="space-y-2">
-                    {results.ilike.map((r: any, i: number) => (
-                      <Card key={r.id || i} className="bg-zinc-900 border-zinc-800">
+                    {results.inbox.map((r, i) => (
+                      <Card key={`inbox-${i}`} className="bg-zinc-900 border-zinc-800">
                         <CardContent className="p-3">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-xs">{r.kind}</Badge>
-                            <Badge variant="secondary" className="bg-zinc-800 text-zinc-500 text-xs">{r.provenance}</Badge>
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge className="bg-blue-950 text-blue-400 text-xs">inbox</Badge>
+                            <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-xs">{r.source}</Badge>
+                            <span className="text-xs text-zinc-600">{new Date(r.created_at).toLocaleDateString("id-ID")}</span>
                           </div>
                           <p className="text-sm text-zinc-300 whitespace-pre-wrap">{r.preview}</p>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
+              {/* Observations Results */}
+              {results.observations.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Eye className="h-4 w-4 text-purple-400" />
+                    <h2 className="text-sm font-medium text-zinc-400">Observations ({results.observations.length})</h2>
+                  </div>
+                  <div className="space-y-2">
+                    {results.observations.map((r, i) => (
+                      <Card key={`obs-${i}`} className="bg-zinc-900 border-zinc-800">
+                        <CardContent className="p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge className="bg-purple-950 text-purple-400 text-xs">observations</Badge>
+                            <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-xs">{r.source}</Badge>
+                            {r.confidence && <Badge variant="secondary" className="bg-zinc-800 text-zinc-500 text-xs">conf: {r.confidence.toFixed(2)}</Badge>}
+                            <span className="text-xs text-zinc-600">{new Date(r.created_at).toLocaleDateString("id-ID")}</span>
+                          </div>
+                          <p className="text-sm text-zinc-300 whitespace-pre-wrap">{r.preview}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* LTM Results */}
+              {results.ltm.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Brain className="h-4 w-4 text-amber-400" />
+                    <h2 className="text-sm font-medium text-zinc-400">LTM ({results.ltm.length})</h2>
+                  </div>
+                  <div className="space-y-2">
+                    {results.ltm.map((r, i) => (
+                      <Card key={`ltm-${i}`} className="bg-zinc-900 border-zinc-800">
+                        <CardContent className="p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge className="bg-amber-950 text-amber-400 text-xs">ltm</Badge>
+                            <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-xs">{r.kind}</Badge>
+                            <Badge variant="secondary" className="bg-zinc-800 text-zinc-500 text-xs">{r.provenance}</Badge>
+                            <span className="text-xs text-zinc-600">{new Date(r.created_at).toLocaleDateString("id-ID")}</span>
+                          </div>
+                          <p className="text-sm text-zinc-300 whitespace-pre-wrap">{r.preview}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {results.total === 0 && (
+                <div className="text-center py-12 text-zinc-600">
+                  Tidak ada hasil untuk &quot;{query}&quot;
+                </div>
+              )}
             </div>
           )}
 
