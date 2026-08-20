@@ -13,11 +13,9 @@ import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 interface InboxItem {
   id: string;
-  source: string;
-  message: string;
+  sender: string;
+  content: string;
   meta: any;
-  has_embedding: boolean;
-  embedding_size: number;
   created_at: string;
 }
 
@@ -36,7 +34,7 @@ export default function InboxPage() {
     if (!token) return;
     setLoading(true);
     const sp = new URLSearchParams({ page: String(page), per_page: "25" });
-    if (sourceFilter) sp.set("source", sourceFilter);
+    if (sourceFilter) sp.set("sender", sourceFilter);
     if (search) sp.set("q", search);
 
     const res = await authFetch(`/api/inbox?${sp}`);
@@ -120,22 +118,13 @@ export default function InboxPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-xs">
-                            {item.source || "unknown"}
+                            {item.sender || "unknown"}
                           </Badge>
-                          {item.has_embedding ? (
-                            <Badge className="bg-emerald-950 text-emerald-400 text-xs">
-                              embed
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-amber-950 text-amber-400 text-xs">
-                              no embed
-                            </Badge>
-                          )}
                           <span className="text-xs text-zinc-600">
                             {new Date(item.created_at).toLocaleString("id-ID")}
                           </span>
                         </div>
-                        <p className="text-sm text-zinc-300 whitespace-pre-wrap">{item.message}</p>
+                        <p className="text-sm text-zinc-300 whitespace-pre-wrap">{item.content}</p>
                         {item.meta && Object.keys(item.meta).length > 0 && (
                           <p className="text-xs text-zinc-600 mt-1">
                             meta: {JSON.stringify(item.meta).slice(0, 80)}

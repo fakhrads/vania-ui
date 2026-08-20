@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const page = Math.max(1, parseInt(sp.get("page") || "1"));
   const perPage = Math.min(100, Math.max(1, parseInt(sp.get("per_page") || "25")));
-  const source = sp.get("source") || null;
+  const source = sp.get("sender") || null;
   const search = sp.get("q") || null;
   const offset = (page - 1) * perPage;
 
@@ -21,11 +21,11 @@ export async function GET(req: NextRequest) {
     let idx = 1;
 
     if (source) {
-      where += ` AND source = $${idx++}`;
+      where += ` AND sender = $${idx++}`;
       params.push(source);
     }
     if (search) {
-      where += ` AND message ILIKE $${idx}`;
+      where += ` AND content ILIKE $${idx}`;
       params.push(`%${search}%`);
       idx++;
     }
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     const total = Number(countRes.rows[0].total);
 
     const data = await query(
-      `SELECT id, source, message, meta, created_at
+      `SELECT id, sender, content, meta, created_at
        FROM vania_inbox_legacy
        WHERE ${where}
        ORDER BY created_at DESC
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     );
 
     const sources = await query(
-      `SELECT source, count(*) as count FROM vania_inbox_legacy GROUP BY source ORDER BY count DESC`
+      `SELECT sender as source, count(*) as count FROM vania_inbox_legacy GROUP BY sender ORDER BY count DESC`
     );
 
     return NextResponse.json({
