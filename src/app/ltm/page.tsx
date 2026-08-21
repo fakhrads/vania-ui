@@ -56,7 +56,7 @@ export default function Korpus() {
 
   return (
     <Guard>
-    <div className="flex min-h-screen">
+    <div className="flex flex-col min-h-screen lg:flex-row">
       <div className="mesh-bg" />
       <Sidebar />
 

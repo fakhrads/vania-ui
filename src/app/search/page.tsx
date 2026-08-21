@@ -46,7 +46,7 @@ export default function SearchPage() {
 
   return (
     <Guard>
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden lg:flex-row">
       <div className="mesh-bg" />
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8">
