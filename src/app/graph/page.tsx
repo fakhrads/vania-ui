@@ -5,7 +5,8 @@ import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
 import { Glass, Pill, StatusDot, useLive, type Tone } from "@/components/monitor";
-import { Lock, Globe, RefreshCw, Search, Flame, X } from "lucide-react";
+import { Lock, Globe, RefreshCw, Search, Flame, X, Focus, Link2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // Canvas butuh `window` — matikan SSR, kalau tidak build gagal di server.
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
@@ -210,6 +211,53 @@ export default function GraphPage() {
     return graphData.nodes.filter((n) => ids.has(n.id));
   }, [selected, graphData]);
 
+  // Tetangga langsung dari node terpilih — dasar buat mode "graf lokal"
+  // (ala local graph Obsidian). Beda dari `highlight`: itu ngikutin hover
+  // (buat sorot cepat), ini murni ngikutin selection (buat mode isolate
+  // yang gak boleh kedip-kedip ikut mouse lewat).
+  const neighborhood = useMemo(() => {
+    if (!selected) return null;
+    const nodeIds = new Set<string>([selected.id]);
+    const links: any[] = [];
+    for (const l of graphData.links) {
+      const s = typeof l.source === "object" ? (l.source as any).id : l.source;
+      const t = typeof l.target === "object" ? (l.target as any).id : l.target;
+      if (s === selected.id || t === selected.id) {
+        nodeIds.add(s); nodeIds.add(t);
+        links.push(l);
+      }
+    }
+    return { nodes: graphData.nodes.filter((n) => nodeIds.has(n.id)), links };
+  }, [selected, graphData]);
+
+  const [isolate, setIsolate] = useState(false);
+  const visibleGraph = isolate && neighborhood ? neighborhood : graphData;
+  useEffect(() => {
+    if (isolate && neighborhood) {
+      const t = setTimeout(() => fgRef.current?.zoomToFit(400, 90), 60);
+      return () => clearTimeout(t);
+    }
+  }, [isolate, selected]);
+
+  // "Terkait" ala backlinks Obsidian — entri LAIN yang nyebut entitas yang
+  // sama dengan entri terpilih (2-hop lewat entitas bareng), diranking dari
+  // berapa banyak entitas yang mereka bagi.
+  const relatedEntries = useMemo(() => {
+    if (!selected || selected.type !== "entry") return [];
+    const counts = new Map<string, number>();
+    for (const ent of selectedEntities) {
+      for (const e of (ent as any).entries ?? []) {
+        if (e.id === selected.id) continue;
+        counts.set(e.id, (counts.get(e.id) ?? 0) + 1);
+      }
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([id, n]) => ({ node: graphData.nodes.find((x) => x.id === id), n }))
+      .filter((x): x is { node: Node; n: number } => !!x.node);
+  }, [selected, selectedEntities, graphData]);
+
   const suggestions = useMemo(() => {
     if (q.trim().length < 2) return [];
     const needle = q.toLowerCase();
@@ -338,7 +386,7 @@ export default function GraphPage() {
               {data && (
                 <ForceGraph2D
                   ref={fgRef}
-                  graphData={graphData}
+                  graphData={visibleGraph}
                   nodeId="id"
                   backgroundColor="rgba(0,0,0,0)"
                   cooldownTicks={80}
@@ -519,9 +567,25 @@ export default function GraphPage() {
               </Glass>
 
               <Glass className="p-5">
-                <h2 className="mb-3 text-sm font-medium text-zinc-300">
-                  {selected ? (selected.type === "entity" ? "Entitas" : "Entri") : "Klik sebuah node"}
-                </h2>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h2 className="text-sm font-medium text-zinc-300">
+                    {selected ? (selected.type === "entity" ? "Entitas" : "Entri") : "Klik sebuah node"}
+                  </h2>
+                  {selected && (
+                    <button
+                      onClick={() => setIsolate((v) => !v)}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                        isolate
+                          ? "border-sky-400/30 bg-sky-400/10 text-sky-300"
+                          : "border-white/10 bg-white/[0.04] text-zinc-400 hover:text-zinc-200"
+                      )}
+                    >
+                      <Focus className="size-3" />
+                      {isolate ? "Graf penuh" : "Graf lokal"}
+                    </button>
+                  )}
+                </div>
                 {selected ? (
                   <div className="space-y-3 text-sm">
                     {selected.type === "entity" ? (
@@ -582,6 +646,25 @@ export default function GraphPage() {
                             ))}
                           </div>
                         )}
+                        {relatedEntries.length > 0 && (
+                          <div className="border-t border-white/[0.07] pt-2">
+                            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-zinc-500">
+                              <Link2 className="size-3" /> Terkait
+                            </h3>
+                            <div className="space-y-1">
+                              {relatedEntries.map(({ node, n }) => (
+                                <button
+                                  key={node.id}
+                                  onClick={() => focusNode(node)}
+                                  className="flex w-full items-start gap-2 rounded-xl px-2 py-1.5 text-left text-xs text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-200"
+                                >
+                                  <span className="line-clamp-2 flex-1">{node.label}</span>
+                                  <span className="num shrink-0 text-zinc-600">{n} bareng</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -595,7 +678,9 @@ export default function GraphPage() {
               <p className="px-1 text-[11px] leading-relaxed text-zinc-600">
                 Tarik untuk geser node, scroll untuk zoom. Klik sebuah node
                 buat buka popup ringkas &amp; menyalakan semua garis yang
-                terhubung ke dia — klik area kosong buat matiin. Warna node
+                terhubung ke dia — klik area kosong buat matiin.
+                &quot;Graf lokal&quot; mengisolasi cuma node terpilih +
+                tetangga langsungnya, ala local graph Obsidian. Warna node
                 entri mengikuti tier; ungu = entitas tetap.
               </p>
             </div>
