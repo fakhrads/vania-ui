@@ -1,11 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useCallback } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
 import { Glass, Pill, StatusDot, useLive, type Tone } from "@/components/monitor";
-import { Lock, Globe, RefreshCw } from "lucide-react";
+import { Lock, Globe, RefreshCw, Search, Flame } from "lucide-react";
 
 // Canvas butuh `window` — matikan SSR, kalau tidak build gagal di server.
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
@@ -18,6 +18,9 @@ type Node = {
   kind?: string;
   scope?: string;
   audience?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  entries?: { id: string; label: string }[];
   x?: number; y?: number;
 };
 type Link = { source: string; target: string };
@@ -26,7 +29,15 @@ type Graph = { nodes: Node[]; links: Link[]; stats: { entries: number; entities:
 const KIND_COLOR: Record<string, string> = {
   seed: "#38bdf8", active: "#34d399", evicted: "#fbbf24", archive: "#71717a",
 };
+const KIND_LABEL: Record<string, string> = {
+  seed: "fakta inti", active: "aktif", evicted: "pernah aktif", archive: "arsip",
+};
 const ENTITY_COLOR = "#a78bfa";
+
+function fmtDate(iso?: string) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+}
 
 export default function GraphPage() {
   const [showArchive, setShowArchive] = useState(false);
@@ -34,7 +45,10 @@ export default function GraphPage() {
     `/api/graph${showArchive ? "?all=1" : ""}`, 60000
   );
   const [selected, setSelected] = useState<Node | null>(null);
+  const [hoverNode, setHoverNode] = useState<Node | null>(null);
+  const [q, setQ] = useState("");
   const fgRef = useRef<any>(null);
+  const didInitialFit = useRef(false);
 
   const graphData = useMemo(
     () => ({
@@ -43,6 +57,71 @@ export default function GraphPage() {
     }),
     [data]
   );
+
+  const degree = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of graphData.links) {
+      const s = typeof l.source === "object" ? (l.source as any).id : l.source;
+      const t = typeof l.target === "object" ? (l.target as any).id : l.target;
+      m.set(s, (m.get(s) ?? 0) + 1);
+      m.set(t, (m.get(t) ?? 0) + 1);
+    }
+    return m;
+  }, [graphData]);
+
+  const topEntities = useMemo(() => {
+    return graphData.nodes
+      .filter((n) => n.type === "entity")
+      .map((n) => ({ node: n, n: degree.get(n.id) ?? 0 }))
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 8);
+  }, [graphData, degree]);
+
+  const anchor = hoverNode ?? selected;
+  const highlight = useMemo(() => {
+    const nodes = new Set<string>();
+    const links = new Set<any>();
+    if (anchor) {
+      nodes.add(anchor.id);
+      for (const l of graphData.links) {
+        const s = typeof l.source === "object" ? (l.source as any).id : l.source;
+        const t = typeof l.target === "object" ? (l.target as any).id : l.target;
+        if (s === anchor.id || t === anchor.id) {
+          nodes.add(s); nodes.add(t); links.add(l);
+        }
+      }
+    }
+    return { nodes, links };
+  }, [anchor, graphData]);
+
+  const selectedEntities = useMemo(() => {
+    if (!selected || selected.type !== "entry") return [];
+    const ids = new Set<string>();
+    for (const l of graphData.links) {
+      const s = typeof l.source === "object" ? (l.source as any).id : l.source;
+      const t = typeof l.target === "object" ? (l.target as any).id : l.target;
+      if (s === selected.id) ids.add(t);
+    }
+    return graphData.nodes.filter((n) => ids.has(n.id));
+  }, [selected, graphData]);
+
+  const suggestions = useMemo(() => {
+    if (q.trim().length < 2) return [];
+    const needle = q.toLowerCase();
+    return graphData.nodes
+      .filter((n) => (n.content ?? n.label).toLowerCase().includes(needle))
+      .slice(0, 8);
+  }, [q, graphData]);
+
+  const focusNode = useCallback((n: Node) => {
+    setSelected(n);
+    setQ("");
+    const live = graphData.nodes.find((x) => x.id === n.id) as any;
+    if (live && typeof live.x === "number" && fgRef.current) {
+      fgRef.current.centerAt(live.x, live.y, 700);
+      fgRef.current.zoom(5, 700);
+    }
+  }, [graphData]);
 
   const tone: Tone = !data ? "idle" : err ? "bad" : "ok";
 
@@ -85,8 +164,40 @@ export default function GraphPage() {
             </div>
           </header>
 
-          <div className="grid h-[calc(100vh-11rem)] gap-4 lg:grid-cols-[1fr_320px]">
+          <div className="grid h-[calc(100vh-11rem)] gap-4 lg:grid-cols-[1fr_340px]">
             <Glass className="relative overflow-hidden p-0">
+              <div className="graph-dots" />
+
+              {/* Kotak cari — lompat ke node tertentu tanpa scroll manual */}
+              <div className="absolute left-4 top-4 z-20 w-64">
+                <div className="glass flex items-center gap-2 rounded-2xl px-3 py-2">
+                  <Search className="size-3.5 shrink-0 text-zinc-500" />
+                  <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="cari entri atau entitas…"
+                    className="w-full bg-transparent text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none"
+                  />
+                </div>
+                {suggestions.length > 0 && (
+                  <div className="glass mt-1.5 max-h-72 overflow-y-auto rounded-2xl p-1.5">
+                    {suggestions.map((n) => (
+                      <button
+                        key={n.id}
+                        onClick={() => focusNode(n)}
+                        className="flex w-full items-start gap-2 rounded-xl px-2.5 py-2 text-left text-xs text-zinc-300 hover:bg-white/[0.06]"
+                      >
+                        <span
+                          className="mt-1 size-1.5 shrink-0 rounded-full"
+                          style={{ background: n.type === "entity" ? ENTITY_COLOR : (KIND_COLOR[n.kind ?? ""] ?? "#71717a") }}
+                        />
+                        <span className="line-clamp-2">{n.content ?? n.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {err && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-rose-300">
                   gagal memuat — {err}
@@ -103,17 +214,87 @@ export default function GraphPage() {
                   graphData={graphData}
                   nodeId="id"
                   backgroundColor="rgba(0,0,0,0)"
-                  nodeLabel={(n: any) => (n.type === "entity" ? n.label : n.content ?? n.label)}
-                  nodeColor={(n: any) =>
-                    n.type === "entity" ? ENTITY_COLOR : KIND_COLOR[n.kind] ?? "#71717a"
-                  }
-                  nodeRelSize={4}
-                  nodeVal={(n: any) => (n.type === "entity" ? 3 : 1.4)}
-                  linkColor={() => "rgba(255,255,255,0.12)"}
-                  linkWidth={1}
-                  onNodeClick={(n: any) => setSelected(n)}
                   cooldownTicks={80}
-                  width={typeof window !== "undefined" ? undefined : 800}
+                  onEngineStop={() => {
+                    if (!didInitialFit.current) {
+                      didInitialFit.current = true;
+                      fgRef.current?.zoomToFit(600, 60);
+                    }
+                  }}
+                  onNodeHover={(n: any) => setHoverNode(n)}
+                  onNodeClick={(n: any) => focusNode(n)}
+                  onBackgroundClick={() => setSelected(null)}
+                  linkDirectionalParticles={2}
+                  linkDirectionalParticleWidth={(l: any) => (highlight.links.has(l) ? 2.2 : 1.1)}
+                  linkDirectionalParticleSpeed={0.004}
+                  linkDirectionalParticleColor={(l: any) => {
+                    const t = typeof l.target === "object" ? l.target : null;
+                    return t?.type === "entity" ? ENTITY_COLOR : "#71717a";
+                  }}
+                  linkColor={(l: any) =>
+                    highlight.links.size
+                      ? highlight.links.has(l) ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.04)"
+                      : "rgba(255,255,255,0.12)"
+                  }
+                  linkWidth={(l: any) => (highlight.links.has(l) ? 1.6 : 1)}
+                  nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+                    const isEntity = node.type === "entity";
+                    const deg = degree.get(node.id) ?? 0;
+                    const r = isEntity
+                      ? 4.5 + Math.min(9, Math.sqrt(deg) * 1.9)
+                      : 2.2 + Math.min(2.6, Math.sqrt(deg) * 0.55);
+                    const dimmed = highlight.nodes.size > 0 && !highlight.nodes.has(node.id);
+                    const isFocus = anchor?.id === node.id;
+                    const color = isEntity ? ENTITY_COLOR : (KIND_COLOR[node.kind] ?? "#71717a");
+
+                    ctx.save();
+                    ctx.globalAlpha = dimmed ? 0.12 : 1;
+
+                    if (isEntity) {
+                      const grad = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, r * 2.4);
+                      grad.addColorStop(0, color + "40");
+                      grad.addColorStop(1, "transparent");
+                      ctx.fillStyle = grad;
+                      ctx.beginPath();
+                      ctx.arc(node.x, node.y, r * 2.4, 0, 2 * Math.PI);
+                      ctx.fill();
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                    if (isFocus) {
+                      ctx.lineWidth = 1.8;
+                      ctx.strokeStyle = "#fff";
+                      ctx.stroke();
+                    }
+
+                    const showLabel = isEntity || isFocus;
+                    if (showLabel && !dimmed) {
+                      const fontSize = Math.max(3, (isEntity ? 12 : 11) / globalScale);
+                      ctx.font = `${isEntity ? "600" : "500"} ${fontSize}px ui-sans-serif, system-ui`;
+                      const text = isEntity ? node.label : node.label;
+                      const tw = ctx.measureText(text).width;
+                      const pad = fontSize * 0.35;
+                      const ty = node.y + r + fontSize * 0.9;
+                      ctx.fillStyle = "rgba(8,8,11,0.72)";
+                      ctx.fillRect(node.x - tw / 2 - pad, ty - fontSize * 0.8, tw + pad * 2, fontSize * 1.3);
+                      ctx.fillStyle = isEntity ? "#e9d5ff" : "#e4e4e7";
+                      ctx.textAlign = "center";
+                      ctx.fillText(text, node.x, ty - fontSize * 0.15);
+                    }
+                    ctx.restore();
+                  }}
+                  nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
+                    const isEntity = node.type === "entity";
+                    const deg = degree.get(node.id) ?? 0;
+                    const r = (isEntity ? 4.5 + Math.min(9, Math.sqrt(deg) * 1.9) : 2.2 + Math.min(2.6, Math.sqrt(deg) * 0.55)) + 3;
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+                    ctx.fill();
+                  }}
                 />
               )}
             </Glass>
@@ -125,13 +306,31 @@ export default function GraphPage() {
                   {Object.entries(KIND_COLOR).map(([k, c]) => (
                     <div key={k} className="flex items-center gap-2 text-zinc-400">
                       <span className="size-2.5 rounded-full" style={{ background: c }} />
-                      {k}
+                      {KIND_LABEL[k]}
                     </div>
                   ))}
                   <div className="flex items-center gap-2 text-zinc-400">
                     <span className="size-2.5 rounded-full" style={{ background: ENTITY_COLOR }} />
-                    entitas
+                    entitas (ukuran = jumlah tautan)
                   </div>
+                </div>
+              </Glass>
+
+              <Glass className="p-5">
+                <h2 className="mb-3 flex items-center gap-1.5 text-sm font-medium text-zinc-300">
+                  <Flame className="size-3.5 text-amber-400" /> Entitas tersibuk
+                </h2>
+                <div className="space-y-1.5">
+                  {topEntities.map(({ node, n }) => (
+                    <button
+                      key={node.id}
+                      onClick={() => focusNode(node)}
+                      className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-left text-xs text-zinc-300 transition-colors hover:bg-white/[0.06]"
+                    >
+                      <span className="truncate">{node.label}</span>
+                      <span className="num shrink-0 text-zinc-500">{n}</span>
+                    </button>
+                  ))}
                 </div>
               </Glass>
 
@@ -140,13 +339,35 @@ export default function GraphPage() {
                   {selected ? (selected.type === "entity" ? "Entitas" : "Entri") : "Klik sebuah node"}
                 </h2>
                 {selected ? (
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-3 text-sm">
                     {selected.type === "entity" ? (
-                      <p className="text-zinc-200">{selected.label}</p>
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="size-2.5 rounded-full" style={{ background: ENTITY_COLOR }} />
+                          <p className="font-medium text-zinc-100">{selected.label}</p>
+                        </div>
+                        <p className="text-xs text-zinc-500">
+                          disebut di {degree.get(selected.id) ?? 0} entri
+                        </p>
+                        <div className="max-h-64 space-y-1 overflow-y-auto border-t border-white/[0.07] pt-2">
+                          {(selected.entries ?? []).map((e) => (
+                            <button
+                              key={e.id}
+                              onClick={() => {
+                                const n = graphData.nodes.find((x) => x.id === e.id);
+                                if (n) focusNode(n);
+                              }}
+                              className="block w-full rounded-xl px-2 py-1.5 text-left text-xs text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-200"
+                            >
+                              {e.label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
                     ) : (
                       <>
                         <p className="leading-relaxed text-zinc-300">{selected.content}</p>
-                        <div className="flex flex-wrap gap-1.5 pt-1">
+                        <div className="flex flex-wrap gap-1.5">
                           <Pill tone={selected.kind === "active" ? "ok" : "idle"}>{selected.kind}</Pill>
                           <Pill tone="idle">{selected.scope}</Pill>
                           {selected.audience && (
@@ -160,6 +381,23 @@ export default function GraphPage() {
                             </Pill>
                           )}
                         </div>
+                        <div className="grid grid-cols-2 gap-2 border-t border-white/[0.07] pt-2 text-[11px] text-zinc-500">
+                          <div>dibuat<div className="text-zinc-300">{fmtDate(selected.createdAt)}</div></div>
+                          <div>diperbarui<div className="text-zinc-300">{fmtDate(selected.updatedAt)}</div></div>
+                        </div>
+                        {selectedEntities.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 border-t border-white/[0.07] pt-2">
+                            {selectedEntities.map((n) => (
+                              <button
+                                key={n.id}
+                                onClick={() => focusNode(n)}
+                                className="rounded-full border border-violet-400/25 bg-violet-400/10 px-2 py-0.5 text-[11px] text-violet-300 hover:bg-violet-400/20"
+                              >
+                                {n.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -171,9 +409,9 @@ export default function GraphPage() {
               </Glass>
 
               <p className="px-1 text-[11px] leading-relaxed text-zinc-600">
-                Tarik untuk geser node, scroll untuk zoom. Warna node entri
-                mengikuti tier (seed/active/evicted/archive); ungu = entitas
-                tetap (orang, tempat, proyek).
+                Tarik untuk geser node, scroll untuk zoom, hover buat sorot
+                koneksi. Warna node entri mengikuti tier; ungu = entitas
+                tetap. Partikel mengalir dari entri ke entitas yang disebut.
               </p>
             </div>
           </div>

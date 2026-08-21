@@ -177,6 +177,17 @@
   mask-image: radial-gradient(75% 60% at 50% 40%, black, transparent);
 }
 
+/* Kanvas titik-titik untuk panel graph — lebih tegas dari .mesh-bg::after
+   (yang dibuat samar sengaja buat latar halaman biasa). Statis, tidak ikut
+   pan/zoom graph — cukup buat kesan "permukaan kerja", tidak menyedot GPU
+   dengan menghitung ulang transform tiap frame. */
+.graph-dots {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgb(255 255 255 / 0.1) 1.4px, transparent 1.4px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(85% 80% at 50% 45%, black, transparent 92%);
+}
+
 @keyframes pulse-ring {
   0%   { box-shadow: 0 0 0 0 var(--ring-color); }
   70%  { box-shadow: 0 0 0 7px transparent; }

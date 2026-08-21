@@ -26,6 +26,7 @@ const ENTITY_RE = new RegExp(
 
 type Row = {
   id: number; content: string; kind: string; scope: string; audience: string;
+  created_at: string; updated_at: string;
 };
 
 /**
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
     : "('seed','active','evicted')";
 
   const data = await query(
-    `SELECT id, content, kind, scope, audience FROM vania_ltm
+    `SELECT id, content, kind, scope, audience, created_at, updated_at FROM vania_ltm
      WHERE (scope='fakhri' AND kind IN ${kindsFakhri})
         OR (scope='abiane' AND kind IN ('seed','active'))
      ORDER BY scope, kind, id`
@@ -53,6 +54,7 @@ export async function GET(req: NextRequest) {
   const entityIds = new Set<string>();
   const nodes: any[] = [];
   const links: any[] = [];
+  const entryLinksByEntity = new Map<string, { id: string; label: string }[]>();
 
   for (const row of rows) {
     const nodeId = `entry-${row.id}`;
@@ -64,6 +66,8 @@ export async function GET(req: NextRequest) {
       kind: row.kind,
       scope: row.scope,
       audience: row.audience,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
     });
 
     const seen = new Set<string>();
@@ -78,9 +82,17 @@ export async function GET(req: NextRequest) {
       if (!entityIds.has(entId)) {
         entityIds.add(entId);
         nodes.push({ id: entId, type: "entity", label: canon });
+        entryLinksByEntity.set(entId, []);
       }
       links.push({ source: nodeId, target: entId });
+      entryLinksByEntity.get(entId)!.push({ id: nodeId, label: row.content.slice(0, 60) });
     }
+  }
+
+  // Entri-per-entitas dilampirkan langsung ke node entitas — panel detail di
+  // klien tidak perlu menghitung ulang dari daftar links tiap klik.
+  for (const n of nodes) {
+    if (n.type === "entity") n.entries = entryLinksByEntity.get(n.id) ?? [];
   }
 
   return NextResponse.json({
