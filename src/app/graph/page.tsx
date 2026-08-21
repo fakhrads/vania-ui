@@ -1,11 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useRef, useState, useCallback } from "react";
+import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
 import { Glass, Pill, StatusDot, useLive, type Tone } from "@/components/monitor";
-import { Lock, Globe, RefreshCw, Search, Flame } from "lucide-react";
+import { Lock, Globe, RefreshCw, Search, Flame, X } from "lucide-react";
 
 // Canvas butuh `window` — matikan SSR, kalau tidak build gagal di server.
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
@@ -37,6 +37,19 @@ const ENTITY_COLOR = "#a78bfa";
 function fmtDate(iso?: string) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/** Jari-jari node: entitas membesar mengikuti derajat (hub); entri
+ * membesar mengikuti PANJANG isinya (konteks lebih tebal → bulatan lebih
+ * besar) plus sedikit dari derajat, supaya dua sinyal itu kelihatan sama-
+ * sama tanpa satu menenggelamkan yang lain. Dipakai sama persis di render
+ * dan di area klik (nodePointerAreaPaint) — kalau beda, klik meleset. */
+function nodeRadius(node: any, deg: number) {
+  if (node.type === "entity") {
+    return 4.5 + Math.min(9, Math.sqrt(deg) * 1.9);
+  }
+  const len = node.content?.length ?? 0;
+  return 2 + Math.min(3.4, Math.sqrt(len) * 0.2) + Math.min(1.4, Math.sqrt(deg) * 0.45);
 }
 
 export default function GraphPage() {
@@ -115,6 +128,7 @@ export default function GraphPage() {
 
   const focusNode = useCallback((n: Node) => {
     setSelected(n);
+    setPopupNode(n);
     setQ("");
     const live = graphData.nodes.find((x) => x.id === n.id) as any;
     if (live && typeof live.x === "number" && fgRef.current) {
@@ -122,6 +136,27 @@ export default function GraphPage() {
       fgRef.current.zoom(5, 700);
     }
   }, [graphData]);
+
+  // Popup ngambang di posisi node di layar — dilacak tiap frame karena
+  // node tetap bisa bergerak (fisika/pan/zoom) selagi popup terbuka.
+  const [popupNode, setPopupNode] = useState<Node | null>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!popupNode) return;
+    let raf: number;
+    const tick = () => {
+      const live = graphData.nodes.find((n) => n.id === popupNode.id) as any;
+      if (live && fgRef.current && popupRef.current && typeof live.x === "number") {
+        const { x, y } = fgRef.current.graph2ScreenCoords(live.x, live.y);
+        // translate ke titik node dulu, baru geser -50% lebar sendiri buat
+        // center horizontal + turun 18px biar gak nutupin bulatannya.
+        popupRef.current.style.transform = `translate(${x}px, ${y}px) translate(-50%, 18px)`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [popupNode, graphData]);
 
   const tone: Tone = !data ? "idle" : err ? "bad" : "ok";
 
@@ -223,9 +258,9 @@ export default function GraphPage() {
                   }}
                   onNodeHover={(n: any) => setHoverNode(n)}
                   onNodeClick={(n: any) => focusNode(n)}
-                  onBackgroundClick={() => setSelected(null)}
+                  onBackgroundClick={() => { setSelected(null); setPopupNode(null); }}
                   linkDirectionalParticles={2}
-                  linkDirectionalParticleWidth={(l: any) => (highlight.links.has(l) ? 2.2 : 1.1)}
+                  linkDirectionalParticleWidth={(l: any) => (highlight.links.has(l) ? 2.6 : 1)}
                   linkDirectionalParticleSpeed={0.004}
                   linkDirectionalParticleColor={(l: any) => {
                     const t = typeof l.target === "object" ? l.target : null;
@@ -233,16 +268,14 @@ export default function GraphPage() {
                   }}
                   linkColor={(l: any) =>
                     highlight.links.size
-                      ? highlight.links.has(l) ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.04)"
+                      ? highlight.links.has(l) ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.03)"
                       : "rgba(255,255,255,0.12)"
                   }
-                  linkWidth={(l: any) => (highlight.links.has(l) ? 1.6 : 1)}
+                  linkWidth={(l: any) => (highlight.links.has(l) ? 2.4 : 1)}
                   nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
                     const isEntity = node.type === "entity";
                     const deg = degree.get(node.id) ?? 0;
-                    const r = isEntity
-                      ? 4.5 + Math.min(9, Math.sqrt(deg) * 1.9)
-                      : 2.2 + Math.min(2.6, Math.sqrt(deg) * 0.55);
+                    const r = nodeRadius(node, deg);
                     const dimmed = highlight.nodes.size > 0 && !highlight.nodes.has(node.id);
                     const isFocus = anchor?.id === node.id;
                     const color = isEntity ? ENTITY_COLOR : (KIND_COLOR[node.kind] ?? "#71717a");
@@ -287,15 +320,49 @@ export default function GraphPage() {
                     ctx.restore();
                   }}
                   nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
-                    const isEntity = node.type === "entity";
                     const deg = degree.get(node.id) ?? 0;
-                    const r = (isEntity ? 4.5 + Math.min(9, Math.sqrt(deg) * 1.9) : 2.2 + Math.min(2.6, Math.sqrt(deg) * 0.55)) + 3;
+                    const r = nodeRadius(node, deg) + 3;
                     ctx.fillStyle = color;
                     ctx.beginPath();
                     ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
                     ctx.fill();
                   }}
                 />
+              )}
+
+              {/* Popup ngambang di posisi node — muncul begitu diklik, ikut
+                  gerak node saat fisika/pan/zoom jalan (lihat efek di atas). */}
+              {popupNode && (
+                <div
+                  ref={popupRef}
+                  className="glass pointer-events-auto absolute left-0 top-0 z-30 w-72 rounded-2xl p-4"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="size-2.5 shrink-0 rounded-full"
+                        style={{ background: popupNode.type === "entity" ? ENTITY_COLOR : (KIND_COLOR[popupNode.kind ?? ""] ?? "#71717a") }}
+                      />
+                      <span className="text-xs font-medium text-zinc-200">
+                        {popupNode.type === "entity" ? "Entitas" : KIND_LABEL[popupNode.kind ?? ""] ?? "Entri"}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setPopupNode(null)}
+                      className="text-zinc-500 hover:text-zinc-200"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                  <p className="mt-2 line-clamp-5 text-xs leading-relaxed text-zinc-300">
+                    {popupNode.type === "entity"
+                      ? `${popupNode.label} — disebut di ${degree.get(popupNode.id) ?? 0} entri`
+                      : popupNode.content}
+                  </p>
+                  <p className="mt-2 text-[10px] text-zinc-600">
+                    {highlight.links.size} garis tersorot ke node terhubung — detail lengkap di panel kanan
+                  </p>
+                </div>
               )}
             </Glass>
 
@@ -314,6 +381,10 @@ export default function GraphPage() {
                     entitas (ukuran = jumlah tautan)
                   </div>
                 </div>
+                <p className="mt-3 border-t border-white/[0.07] pt-2 text-[10px] leading-relaxed text-zinc-600">
+                  Bulatan entri membesar mengikuti panjang isinya — konteks
+                  lebih tebal, bulatan lebih besar.
+                </p>
               </Glass>
 
               <Glass className="p-5">
@@ -409,9 +480,10 @@ export default function GraphPage() {
               </Glass>
 
               <p className="px-1 text-[11px] leading-relaxed text-zinc-600">
-                Tarik untuk geser node, scroll untuk zoom, hover buat sorot
-                koneksi. Warna node entri mengikuti tier; ungu = entitas
-                tetap. Partikel mengalir dari entri ke entitas yang disebut.
+                Tarik untuk geser node, scroll untuk zoom. Klik sebuah node
+                buat buka popup ringkas &amp; menyalakan semua garis yang
+                terhubung ke dia — klik area kosong buat matiin. Warna node
+                entri mengikuti tier; ungu = entitas tetap.
               </p>
             </div>
           </div>
