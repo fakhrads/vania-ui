@@ -72,11 +72,32 @@ export default function GraphPage() {
   // tetangga yang udah beku. Identitas objek node LAMA dipertahankan
   // (bukan literal baru) karena force-graph nyimpen x/y/vx/vy langsung di
   // objek itu — ganti objek = fisika mulai dari nol lagi buat node itu.
+  // Posisi node dipersist ke localStorage, per browser — jadi begitu
+  // halaman dibuka ulang (bukan cuma poll di sesi yang sama), node yang
+  // udah pernah keliatan sebelumnya langsung nongol di posisi lamanya,
+  // dibekukan dari frame pertama. Cuma node yang BENERAN belum pernah
+  // keliatan sama sekali di browser ini yang lepas dan animasi ketarik.
+  const POSITION_CACHE_KEY = "vania-graph-positions-v1";
+  const positionCacheRef = useRef<Record<string, { x: number; y: number }> | null>(null);
+  const getPositionCache = () => {
+    if (positionCacheRef.current) return positionCacheRef.current;
+    let cache: Record<string, { x: number; y: number }> = {};
+    try {
+      const raw = localStorage.getItem(POSITION_CACHE_KEY);
+      if (raw) cache = JSON.parse(raw);
+    } catch {
+      // private mode / storage disabled -> mulai kosong, gak fatal
+    }
+    positionCacheRef.current = cache;
+    return cache;
+  };
+
   const [graphData, setGraphData] = useState<{ nodes: any[]; links: any[] }>({ nodes: [], links: [] });
   useEffect(() => {
     if (!data) return;
     setGraphData((prev) => {
       const prevById = new Map(prev.nodes.map((n) => [n.id, n]));
+      const cache = getPositionCache();
       for (const n of prev.nodes) {
         if (typeof n.x === "number" && typeof n.fx !== "number") {
           n.fx = n.x;
@@ -86,14 +107,48 @@ export default function GraphPage() {
       const nextNodes = data.nodes.map((incoming) => {
         const existing = prevById.get(incoming.id);
         if (existing) {
-          Object.assign(existing, incoming); // refresh metadata, x/y/fx/fy untouched (absent from incoming)
+          Object.assign(existing, incoming); // refresh metadata, x/y/fx/fy untouched (absent dari incoming)
           return existing;
         }
-        return incoming; // beneran baru -> lepas, biar ketarik fisika ke tetangganya
+        const remembered = cache[incoming.id];
+        if (remembered) {
+          // Udah pernah keliatan di browser ini sebelumnya (sesi lama/reload)
+          // -> langsung taruh di posisi lama, dibekukan, TANPA animasi.
+          return { ...incoming, x: remembered.x, y: remembered.y, fx: remembered.x, fy: remembered.y };
+        }
+        return incoming; // beneran baru pertama kali -> lepas, ketarik fisika
       });
+
+      const nextCache: Record<string, { x: number; y: number }> = { ...cache };
+      for (const n of nextNodes) {
+        if (typeof n.fx === "number") nextCache[n.id] = { x: n.fx, y: n.fy };
+      }
+      positionCacheRef.current = nextCache;
+      try {
+        localStorage.setItem(POSITION_CACHE_KEY, JSON.stringify(nextCache));
+      } catch {
+        // storage penuh/disabled -> posisi tetap kepakai di sesi ini, cuma gak persist
+      }
+
       const nextLinks = data.links.map((l) => ({ ...l })); // link gak punya posisi sendiri, aman dibuat ulang
       return { nodes: nextNodes, links: nextLinks };
     });
+  }, [data]);
+
+  // Jarak antar-node — default d3-force nge-dempetin banget buat ~300 node.
+  // Set sekali aja begitu simulasi pertama kali ada datanya; ubah param
+  // gaya TIDAK memicu re-layout paksa (node yang udah beku tetep beku).
+  const forcesConfigured = useRef(false);
+  useEffect(() => {
+    if (!data || !fgRef.current || forcesConfigured.current) return;
+    const charge = fgRef.current.d3Force("charge");
+    if (charge?.strength) {
+      charge.strength(-160);
+      charge.distanceMax?.(600);
+    }
+    const link = fgRef.current.d3Force("link");
+    if (link?.distance) link.distance(80);
+    forcesConfigured.current = true;
   }, [data]);
 
   const degree = useMemo(() => {
