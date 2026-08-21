@@ -6,11 +6,13 @@ import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import {
   Activity, Brain, Mail, Eye, Search, ClipboardList, LogOut, ShieldCheck,
+  Share2,
 } from "lucide-react";
 
 const links = [
   { href: "/", label: "Kesehatan", icon: Activity },
   { href: "/ltm", label: "Korpus", icon: Brain },
+  { href: "/graph", label: "Graph", icon: Share2 },
   { href: "/ops", label: "Audit", icon: ClipboardList },
   { href: "/search", label: "Cari", icon: Search },
   { href: "/inbox", label: "Inbox", icon: Mail },
