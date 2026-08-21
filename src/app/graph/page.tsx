@@ -63,13 +63,38 @@ export default function GraphPage() {
   const fgRef = useRef<any>(null);
   const didInitialFit = useRef(false);
 
-  const graphData = useMemo(
-    () => ({
-      nodes: data?.nodes ?? [],
-      links: (data?.links ?? []).map((l) => ({ ...l })), // force-graph mutates in place
-    }),
-    [data]
-  );
+  // Graph incremental, bukan rebuild total tiap poll. Node yang udah ada
+  // di-BEKUKAN (fx/fy = posisi sekarang) begitu data baru datang, jadi dia
+  // gak akan pernah kegeser lagi walau simulasi fisika jalan lagi buat
+  // node baru. Node yang genuinely baru dibiarin lepas (gak di-fx/fy) —
+  // itu yang bikin dia keliatan "ketarik" ke node yang dia sambungin,
+  // karena link-force fisika narik dia ke posisi seharusnya relatif ke
+  // tetangga yang udah beku. Identitas objek node LAMA dipertahankan
+  // (bukan literal baru) karena force-graph nyimpen x/y/vx/vy langsung di
+  // objek itu — ganti objek = fisika mulai dari nol lagi buat node itu.
+  const [graphData, setGraphData] = useState<{ nodes: any[]; links: any[] }>({ nodes: [], links: [] });
+  useEffect(() => {
+    if (!data) return;
+    setGraphData((prev) => {
+      const prevById = new Map(prev.nodes.map((n) => [n.id, n]));
+      for (const n of prev.nodes) {
+        if (typeof n.x === "number" && typeof n.fx !== "number") {
+          n.fx = n.x;
+          n.fy = n.y;
+        }
+      }
+      const nextNodes = data.nodes.map((incoming) => {
+        const existing = prevById.get(incoming.id);
+        if (existing) {
+          Object.assign(existing, incoming); // refresh metadata, x/y/fx/fy untouched (absent from incoming)
+          return existing;
+        }
+        return incoming; // beneran baru -> lepas, biar ketarik fisika ke tetangganya
+      });
+      const nextLinks = data.links.map((l) => ({ ...l })); // link gak punya posisi sendiri, aman dibuat ulang
+      return { nodes: nextNodes, links: nextLinks };
+    });
+  }, [data]);
 
   const degree = useMemo(() => {
     const m = new Map<string, number>();
