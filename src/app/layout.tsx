@@ -10,8 +10,8 @@ const notoSans = Noto_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Vania Memory",
-  description: "Database dashboard untuk memori Vania",
+  title: "Fakhri's Agentic Memory",
+  description: "Panel pemantauan baca-saja untuk memori & aktivitas Vania",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -31,7 +31,7 @@ export function Sidebar() {
             <Brain className="size-4 text-sky-300" />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-zinc-100">Vania Memory</p>
+            <p className="truncate text-sm font-semibold text-zinc-100">Fakhri&apos;s Agentic Memory</p>
             <p className="text-[10px] text-zinc-500">panel pemantauan</p>
           </div>
         </div>

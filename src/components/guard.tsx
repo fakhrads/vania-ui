@@ -30,7 +30,7 @@ export function Guard({ children }: { children: React.ReactNode }) {
             <Brain className="size-4 animate-pulse text-sky-300" />
           </div>
           <div>
-            <p className="text-sm font-medium text-zinc-200">Vania Memory</p>
+            <p className="text-sm font-medium text-zinc-200">Fakhri&apos;s Agentic Memory</p>
             <p className="text-xs text-zinc-500">
               {loading ? "Memeriksa sesi…" : "Mengarahkan ke masuk…"}
             </p>

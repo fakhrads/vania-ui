@@ -38,7 +38,7 @@ export default function LoginPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600/20 mb-3">
               <Brain className="h-6 w-6 text-blue-400" />
             </div>
-            <h1 className="text-xl font-bold">Vania Memory</h1>
+            <h1 className="text-xl font-bold">Fakhri&apos;s Agentic Memory</h1>
             <p className="text-sm text-zinc-500 mt-1">Login untuk akses memori</p>
           </div>
 
