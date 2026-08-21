@@ -77,7 +77,10 @@ export default function GraphPage() {
   // udah pernah keliatan sebelumnya langsung nongol di posisi lamanya,
   // dibekukan dari frame pertama. Cuma node yang BENERAN belum pernah
   // keliatan sama sekali di browser ini yang lepas dan animasi ketarik.
-  const POSITION_CACHE_KEY = "vania-graph-positions-v1";
+  // v2: jarak antar-node dilonggarin — cache v1 nyimpen posisi lama yang
+  // masih dempet, bump versi biar dibuang dan semua re-layout pake force
+  // yang baru sekali ini aja (abis itu ke-cache lagi dan gak akan reset).
+  const POSITION_CACHE_KEY = "vania-graph-positions-v2";
   const positionCacheRef = useRef<Record<string, { x: number; y: number }> | null>(null);
   const getPositionCache = () => {
     if (positionCacheRef.current) return positionCacheRef.current;
@@ -90,6 +93,15 @@ export default function GraphPage() {
     }
     positionCacheRef.current = cache;
     return cache;
+  };
+  const persistNodePosition = (id: string, x: number, y: number) => {
+    const cache = getPositionCache();
+    cache[id] = { x, y };
+    try {
+      localStorage.setItem(POSITION_CACHE_KEY, JSON.stringify(cache));
+    } catch {
+      // storage penuh/disabled -> gapapa, posisi tetep kepakai di sesi ini
+    }
   };
 
   const [graphData, setGraphData] = useState<{ nodes: any[]; links: any[] }>({ nodes: [], links: [] });
@@ -143,11 +155,11 @@ export default function GraphPage() {
     if (!data || !fgRef.current || forcesConfigured.current) return;
     const charge = fgRef.current.d3Force("charge");
     if (charge?.strength) {
-      charge.strength(-160);
-      charge.distanceMax?.(600);
+      charge.strength(-320);
+      charge.distanceMax?.(800);
     }
     const link = fgRef.current.d3Force("link");
-    if (link?.distance) link.distance(80);
+    if (link?.distance) link.distance(140);
     forcesConfigured.current = true;
   }, [data]);
 
@@ -339,6 +351,21 @@ export default function GraphPage() {
                   onNodeHover={(n: any) => setHoverNode(n)}
                   onNodeClick={(n: any) => focusNode(n)}
                   onBackgroundClick={() => { setSelected(null); setPopupNode(null); }}
+                  onNodeDrag={() => {
+                    // Simulasi bisa udah "tidur" abis settle awal (cooldownTicks
+                    // kepake abis) -- tanpa reheat, node yang ditarik gak
+                    // kegambar ikut gerak sama sekali. Aman dipanggil berkali-
+                    // kali selama drag, cuma nyalain ulang alpha.
+                    fgRef.current?.d3ReheatSimulation();
+                  }}
+                  onNodeDragEnd={(n: any) => {
+                    // Dikunci persis di titik taruh -- gak lompat balik ke
+                    // posisi lama, dan langsung ke-persist biar reload
+                    // berikutnya inget posisi manual ini juga.
+                    n.fx = n.x;
+                    n.fy = n.y;
+                    persistNodePosition(n.id, n.x, n.y);
+                  }}
                   linkDirectionalParticles={2}
                   linkDirectionalParticleWidth={(l: any) => (highlight.links.has(l) ? 2.6 : 1)}
                   linkDirectionalParticleSpeed={0.004}
