@@ -131,7 +131,7 @@ export default function GraphPage() {
     setPopupNode(n);
     setQ("");
     const live = graphData.nodes.find((x) => x.id === n.id) as any;
-    if (live && typeof live.x === "number" && fgRef.current) {
+    if (live && Number.isFinite(live.x) && fgRef.current) {
       fgRef.current.centerAt(live.x, live.y, 700);
       fgRef.current.zoom(5, 700);
     }
@@ -146,7 +146,7 @@ export default function GraphPage() {
     let raf: number;
     const tick = () => {
       const live = graphData.nodes.find((n) => n.id === popupNode.id) as any;
-      if (live && fgRef.current && popupRef.current && typeof live.x === "number") {
+      if (live && fgRef.current && popupRef.current && Number.isFinite(live.x)) {
         const { x, y } = fgRef.current.graph2ScreenCoords(live.x, live.y);
         // translate ke titik node dulu, baru geser -50% lebar sendiri buat
         // center horizontal + turun 18px biar gak nutupin bulatannya.
@@ -273,6 +273,11 @@ export default function GraphPage() {
                   }
                   linkWidth={(l: any) => (highlight.links.has(l) ? 2.4 : 1)}
                   nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+                    // Frame pertama sebelum simulasi jalan, x/y masih
+                    // undefined/NaN — createRadialGradient/arc lempar
+                    // TypeError kalau dikasih itu. Lewati saja, muncul di
+                    // frame berikutnya begitu posisinya kebentuk.
+                    if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
                     const isEntity = node.type === "entity";
                     const deg = degree.get(node.id) ?? 0;
                     const r = nodeRadius(node, deg);
@@ -320,6 +325,7 @@ export default function GraphPage() {
                     ctx.restore();
                   }}
                   nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
+                    if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
                     const deg = degree.get(node.id) ?? 0;
                     const r = nodeRadius(node, deg) + 3;
                     ctx.fillStyle = color;
