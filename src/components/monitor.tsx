@@ -132,41 +132,6 @@ export function Stat({
   );
 }
 
-/* ── Grafik batang mungil (tanpa dependensi) ─────────────────────────── */
-
-export function Bars({
-  data,
-  className,
-}: {
-  data: { label: string; a: number; b: number }[];
-  className?: string;
-}) {
-  const max = Math.max(1, ...data.map((d) => d.a + d.b));
-  return (
-    <div className={cn("well flex h-28 items-end gap-[3px] rounded-xl px-2.5 py-2", className)}>
-      {data.map((d, i) => (
-        <div key={i} className="group relative flex-1" title={`${d.label} · tulis ${d.b} · baca ${d.a}`}>
-          <div className="flex h-24 w-full flex-col justify-end gap-[2px]">
-            {d.a > 0 && (
-              <div
-                className="w-full rounded-t-[3px] bg-read"
-                style={{ height: `${(d.a / max) * 100}%` }}
-              />
-            )}
-            {d.b > 0 && (
-              <div
-                className={cn("w-full bg-write", d.a === 0 && "rounded-t-[3px]")}
-                style={{ height: `${(d.b / max) * 100}%` }}
-              />
-            )}
-            {d.a + d.b === 0 && <div className="h-[2px] w-full rounded bg-line" />}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /* ── Polling sadar-visibilitas ───────────────────────────────────────── */
 
 export function useLive<T>(url: string, ms = 5000) {

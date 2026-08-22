@@ -3,8 +3,9 @@
 import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
 import {
-  Panel, Stat, Pill, StatusDot, Bars, useLive, ago, KIND_CLASS, type Tone,
+  Panel, Stat, Pill, StatusDot, useLive, ago, KIND_CLASS, type Tone,
 } from "@/components/monitor";
+import { Lines } from "@/components/lines";
 import { cn } from "@/lib/utils";
 
 type Health = {
@@ -42,7 +43,7 @@ export default function Dashboard() {
   }
   const total = data?.coverage.total ?? 0;
 
-  const bars = (data?.timeline ?? []).map((t) => ({
+  const timeline = (data?.timeline ?? []).map((t) => ({
     label: new Date(t.bucket).getHours().toString().padStart(2, "0") + ":00",
     a: t.reads,
     b: t.writes,
@@ -178,15 +179,15 @@ export default function Dashboard() {
               <h2 className="text-[13.5px] font-semibold text-tx-1">Aktivitas 24 jam</h2>
               <div className="flex items-center gap-4 text-[11px] text-tx-3">
                 <span className="flex items-center gap-1.5">
-                  <span className="size-2.5 rounded-[3px] bg-write" /> tulis
+                  <span className="h-[3px] w-4 rounded-full bg-write" /> tulis
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="size-2.5 rounded-[3px] bg-read" /> baca
+                  <span className="h-[3px] w-4 rounded-full bg-read" /> baca
                 </span>
               </div>
             </div>
-            {bars.length ? (
-              <Bars data={bars} />
+            {timeline.length ? (
+              <Lines data={timeline} />
             ) : (
               <div className="well flex h-28 items-center justify-center rounded-xl text-sm text-tx-3">
                 Belum ada aktivitas 24 jam terakhir.

@@ -1,12 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useRef, useState, useCallback, useEffect } from "react";
+import { useMemo, useRef, useState, useCallback, useEffect, useSyncExternalStore } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
 import { Panel, Pill, StatusDot, useLive, type Tone } from "@/components/monitor";
 import { useTheme } from "@/lib/theme";
-import { Lock, Globe, RefreshCw, Search, Flame, X, Focus, Link2 } from "lucide-react";
+import { Lock, Globe, RefreshCw, Search, Flame, X, Focus, Link2, Check, Crosshair, Shuffle } from "lucide-react";
+import { forceCollide } from "d3-force-3d";
 import { cn } from "@/lib/utils";
 
 // Canvas butuh `window` — matikan SSR, kalau tidak build gagal di server.
@@ -31,6 +32,83 @@ type Graph = { nodes: Node[]; links: Link[]; stats: { entries: number; entities:
 const KIND_LABEL: Record<string, string> = {
   seed: "fakta inti", active: "aktif", evicted: "pernah aktif", archive: "arsip",
 };
+
+/**
+ * Baris legenda — sekaligus saklar "tampilkan nama" per kategori.
+ *
+ * Nama entri TIDAK digambar secara default: ada ratusan entri, kalau semua
+ * namanya nyala sekaligus canvas langsung jadi tembok teks. Jadi tiap
+ * kategori dinyalakan sendiri-sendiri lewat legenda, dan pilihannya disimpan
+ * per browser (localStorage) biar tidak perlu diklik ulang tiap buka.
+ */
+const LEGEND_ROWS = [
+  { key: "entity", label: "entitas", note: "ukuran = jumlah tautan" },
+  { key: "seed", label: KIND_LABEL.seed, note: "" },
+  { key: "active", label: KIND_LABEL.active, note: "" },
+  { key: "evicted", label: KIND_LABEL.evicted, note: "" },
+  { key: "archive", label: KIND_LABEL.archive, note: "" },
+] as const;
+
+/** Properti yang ditulis d3/force-graph langsung ke objek node. Dibuang saat
+ *  tata ulang supaya simulasi benar-benar mulai dari nol. */
+const PHYSICS_KEYS = ["x", "y", "vx", "vy", "fx", "fy", "index"];
+
+const LABEL_KEY = "vania-graph-labels-v1";
+const LABEL_DEFAULT: Record<string, boolean> = {
+  entity: true, seed: false, active: false, evicted: false, archive: false,
+};
+
+/* ── Saklar label sebagai store di luar React ─────────────────────────────
+   Pilihannya hidup di localStorage — sistem eksternal, persis seperti
+   pilihan tema di lib/theme.tsx, jadi ditangani dengan cara yang sama.
+   React memakai snapshot server saat hydrate lalu merender ulang dengan
+   nilai klien: tidak ada ketidakcocokan hydration, dan tidak perlu
+   setState di dalam efek buat "menyusul" isi localStorage.               */
+
+let labelSnapshot: Record<string, boolean> = LABEL_DEFAULT;
+const labelListeners = new Set<() => void>();
+
+function readLabels(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(LABEL_KEY);
+    if (raw) {
+      const next = { ...LABEL_DEFAULT, ...JSON.parse(raw) };
+      // useSyncExternalStore membandingkan snapshot dengan Object.is —
+      // objek baru tiap render bikin render tak berujung. Ganti referensi
+      // hanya kalau isinya memang berubah.
+      if (JSON.stringify(next) !== JSON.stringify(labelSnapshot)) labelSnapshot = next;
+    }
+  } catch {
+    // storage disabled -> tetap pakai snapshot terakhir
+  }
+  return labelSnapshot;
+}
+
+function subscribeLabels(cb: () => void) {
+  labelListeners.add(cb);
+  window.addEventListener("storage", cb);
+  return () => {
+    labelListeners.delete(cb);
+    window.removeEventListener("storage", cb);
+  };
+}
+
+function writeLabels(next: Record<string, boolean>) {
+  labelSnapshot = next;
+  try {
+    localStorage.setItem(LABEL_KEY, JSON.stringify(next));
+  } catch {
+    // gagal simpan -> pilihan tetap jalan di sesi ini
+  }
+  for (const l of labelListeners) l();
+}
+
+/** Nama entri itu potongan 70 karakter dari isinya — kepanjangan buat
+ *  dicetak massal di canvas. Node yang lagi difokus tetap pakai versi
+ *  panjang; sisanya dipotong biar labelnya tidak saling tindih. */
+function shortLabel(text: string, max = 30) {
+  return text.length > max ? text.slice(0, max - 1).trimEnd() + "…" : text;
+}
 
 /**
  * Palet canvas — dua set nilai harfiah, bukan CSS variable.
@@ -111,6 +189,38 @@ export default function GraphPage() {
   const fgRef = useRef<any>(null);
   const didInitialFit = useRef(false);
 
+  /**
+   * Ukuran canvas diambil dari panelnya, bukan dibiarkan default.
+   *
+   * Tanpa prop width/height, ForceGraph2D memakai seukuran WINDOW — padahal
+   * panelnya cuma sebagian layar dan ber-overflow-hidden. Akibatnya titik
+   * tengah canvas jauh di kanan-bawah titik tengah kotak yang kelihatan,
+   * jadi centerAt/zoomToFit selalu "meleset" ke kanan bawah walau angkanya
+   * benar. Diukur pakai ResizeObserver supaya ikut resize window & sidebar.
+   */
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = Math.round(entry.contentRect.width);
+      const h = Math.round(entry.contentRect.height);
+      // ResizeObserver menembak juga saat ukurannya sebenarnya tidak
+      // berubah; jangan bikin objek state baru buat nilai yang sama.
+      setSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const showLabels = useSyncExternalStore(
+    subscribeLabels, readLabels, () => LABEL_DEFAULT
+  );
+  const toggleLabel = useCallback((k: string) => {
+    writeLabels({ ...labelSnapshot, [k]: !labelSnapshot[k] });
+  }, []);
+
   // Graph incremental, bukan rebuild total tiap poll. Node yang udah ada
   // di-BEKUKAN (fx/fy = posisi sekarang) begitu data baru datang, jadi dia
   // gak akan pernah kegeser lagi walau simulasi fisika jalan lagi buat
@@ -152,6 +262,12 @@ export default function GraphPage() {
     }
   };
 
+  // Node yang SEDANG dilepas dari bekuannya karena ikut tertarik saat drag.
+  // Dibekukan lagi (dan dipersist) begitu simulasi tenang — lihat
+  // onNodeDrag / onEngineStop di bawah.
+  const looseRef = useRef<Set<string>>(new Set());
+  const draggingRef = useRef<string | null>(null);
+
   const [graphData, setGraphData] = useState<{ nodes: any[]; links: any[] }>({ nodes: [], links: [] });
   useEffect(() => {
     if (!data) return;
@@ -159,6 +275,9 @@ export default function GraphPage() {
       const prevById = new Map(prev.nodes.map((n) => [n.id, n]));
       const cache = getPositionCache();
       for (const n of prev.nodes) {
+        // Node yang lagi ikut tertarik drag masih meluncur — kalau poll
+        // datang di tengah animasi jangan dipaku di posisi setengah jalan.
+        if (looseRef.current.has(n.id)) continue;
         if (typeof n.x === "number" && typeof n.fx !== "number") {
           n.fx = n.x;
           n.fy = n.y;
@@ -198,6 +317,11 @@ export default function GraphPage() {
   // Jarak antar-node — default d3-force nge-dempetin banget buat ~300 node.
   // Set sekali aja begitu simulasi pertama kali ada datanya; ubah param
   // gaya TIDAK memicu re-layout paksa (node yang udah beku tetep beku).
+  // Radius node ikut derajat, dan derajat berubah tiap poll — sementara
+  // gaya fisika cuma dipasang sekali. Dibaca lewat ref biar accessor-nya
+  // selalu lihat angka terbaru tanpa perlu pasang ulang gayanya.
+  const degreeRef = useRef<Map<string, number>>(new Map());
+
   const forcesConfigured = useRef(false);
   useEffect(() => {
     if (!data || !fgRef.current || forcesConfigured.current) return;
@@ -208,6 +332,15 @@ export default function GraphPage() {
     }
     const link = fgRef.current.d3Force("link");
     if (link?.distance) link.distance(140);
+    // Tolak-menolak (charge) saja tidak menjamin bulatannya tidak saling
+    // tindih — dia gaya jarak jauh, bukan batas keras. forceCollide bikin
+    // tiap node punya "badan" seukuran gambarnya plus sedikit jarak aman,
+    // jadi hasil tata ulang tidak pernah numpuk. Dipakai dari d3-force-3d,
+    // paket simulasi yang sama yang dipakai force-graph di dalamnya.
+    fgRef.current.d3Force(
+      "collide",
+      forceCollide((n: any) => nodeRadius(n, degreeRef.current.get(n.id) ?? 0) + 7)
+    );
     forcesConfigured.current = true;
   }, [data]);
 
@@ -222,6 +355,30 @@ export default function GraphPage() {
     return m;
   }, [graphData]);
 
+  useEffect(() => {
+    degreeRef.current = degree;
+  }, [degree]);
+
+  const nodeById = useMemo(
+    () => new Map<string, any>(graphData.nodes.map((n) => [n.id, n])),
+    [graphData]
+  );
+
+  const adjacency = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    const add = (a: string, b: string) => {
+      if (!m.has(a)) m.set(a, new Set());
+      m.get(a)!.add(b);
+    };
+    for (const l of graphData.links) {
+      const src = typeof l.source === "object" ? (l.source as any).id : l.source;
+      const tgt = typeof l.target === "object" ? (l.target as any).id : l.target;
+      add(src, tgt);
+      add(tgt, src);
+    }
+    return m;
+  }, [graphData]);
+
   const topEntities = useMemo(() => {
     return graphData.nodes
       .filter((n) => n.type === "entity")
@@ -229,6 +386,39 @@ export default function GraphPage() {
       .sort((a, b) => b.n - a.n)
       .slice(0, 8);
   }, [graphData, degree]);
+
+  /**
+   * Titik pandang: entitas paling sibuk, bukan tengah bounding box.
+   *
+   * Skalanya dihitung dari bounding box KLASTER hub saja (hub + tetangga
+   * langsungnya), bukan dari seluruh graph — jadi hub-nya memenuhi layar
+   * pas, tanpa angka pengali yang ditebak. Kameranya sendiri digeser tepat
+   * ke hub, bukan ke tengah bbox, supaya betul-betul entitas itu yang jadi
+   * pusat. centerAt & zoom dianimasikan barengan, sama seperti yang
+   * dilakukan zoomToFit di dalamnya.
+   */
+  const centerOnHub = useCallback((ms = 700) => {
+    const fg = fgRef.current;
+    if (!fg || !size.w || !size.h) return;
+    const hub = topEntities[0]?.node;
+    if (!hub || !Number.isFinite(hub.x) || !Number.isFinite(hub.y)) {
+      fg.zoomToFit(ms, 60);
+      return;
+    }
+    const hood = adjacency.get(hub.id) ?? new Set<string>();
+    const bbox = fg.getGraphBbox(
+      (n: any) => n.id === hub.id || hood.has(n.id)
+    );
+    fg.centerAt(hub.x, hub.y, ms);
+    if (!bbox) return;
+    const pad = 80;
+    const k = Math.min(
+      Math.max(1, size.w - pad * 2) / Math.max(1, bbox.x[1] - bbox.x[0]),
+      Math.max(1, size.h - pad * 2) / Math.max(1, bbox.y[1] - bbox.y[0])
+    );
+    fg.zoom(Math.max(0.2, Math.min(6, k)), ms);
+  }, [topEntities, adjacency, size]);
+
 
   const anchor = hoverNode ?? selected;
   const highlight = useMemo(() => {
@@ -313,6 +503,12 @@ export default function GraphPage() {
       .slice(0, 8);
   }, [q, graphData]);
 
+  // Didefinisikan di atas focusNode/resetLayout yang memakainya. Kalau
+  // dideklarasikan di bawah, setter-nya tidak lagi dianggap stabil — React
+  // Compiler berhenti mengoptimalkan komponen ini dan lint mengeluh soal
+  // variabel yang dipakai sebelum dideklarasikan.
+  const [popupNode, setPopupNode] = useState<Node | null>(null);
+
   const focusNode = useCallback((n: Node) => {
     setSelected(n);
     setPopupNode(n);
@@ -324,10 +520,9 @@ export default function GraphPage() {
     }
   }, [graphData]);
 
+  const popupRef = useRef<HTMLDivElement>(null);
   // Popup ngambang di posisi node di layar — dilacak tiap frame karena
   // node tetap bisa bergerak (fisika/pan/zoom) selagi popup terbuka.
-  const [popupNode, setPopupNode] = useState<Node | null>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!popupNode) return;
     let raf: number;
@@ -345,12 +540,50 @@ export default function GraphPage() {
     return () => cancelAnimationFrame(raf);
   }, [popupNode, graphData]);
 
+  /**
+   * Buang semua posisi tersimpan dan susun ulang dari nol.
+   *
+   * Node dibuat ULANG sebagai objek baru, bukan dibersihkan di tempat: d3
+   * menulis x/y/vx/vy/fx/fy langsung ke objek node, dan cuma menyemai ulang
+   * posisi buat objek yang belum pernah dia lihat. Link ikut dinormalkan
+   * balik ke id — begitu simulasi jalan, source/target-nya sudah ditukar
+   * jadi referensi ke objek node lama yang sebentar lagi dibuang.
+   *
+   * Semua node ditandai "loose" supaya tidak ada yang dibekukan di tengah
+   * animasi kalau kebetulan ada poll masuk; onEngineStop yang membekukan
+   * dan menyimpan posisi barunya begitu semuanya berhenti bergerak.
+   */
+  const resetLayout = useCallback(() => {
+    if (!data) return;
+    positionCacheRef.current = {};
+    try {
+      localStorage.removeItem(POSITION_CACHE_KEY);
+    } catch {
+      // storage disabled -> tidak ada yang perlu dibuang
+    }
+    draggingRef.current = null;
+    didInitialFit.current = false; // biar balik ke-center ke hub abis settle
+    looseRef.current = new Set(data.nodes.map((n) => n.id));
+    setSelected(null);
+    setPopupNode(null);
+    setIsolate(false);
+    setGraphData({
+      nodes: data.nodes.map((n) => {
+        const clean: Record<string, unknown> = { ...n };
+        for (const k of PHYSICS_KEYS) delete clean[k];
+        return clean;
+      }),
+      links: data.links.map((l) => ({ ...l })),
+    });
+    fgRef.current?.d3ReheatSimulation();
+  }, [data]);
+
   // Simulasi berhenti setelah cooldown, jadi canvas tidak menggambar ulang
   // dengan sendirinya. Tanpa ini pindah tema tidak mengubah apa pun di
   // canvas sampai ada interaksi berikutnya.
   useEffect(() => {
     fgRef.current?.refresh?.();
-  }, [isDark]);
+  }, [isDark, showLabels]);
 
   const tone: Tone = !data ? "idle" : err ? "bad" : "ok";
 
@@ -366,8 +599,7 @@ export default function GraphPage() {
                 Graph Memori
               </h1>
               <p className="mt-1 text-sm text-tx-3">
-                Entri &amp; entitas — sama persis dengan vault Obsidian, langsung dari{" "}
-                <span className="num text-tx-2">vania_ltm</span>
+                Entri &amp; entitas graph berdasarkan tautan, dengan entitas paling sibuk di tengah. Klik node untuk lihat detailnya.
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -377,6 +609,20 @@ export default function GraphPage() {
                   {data.stats.entries} entri · {data.stats.entities} entitas · {data.stats.edges} tautan
                 </Pill>
               )}
+              <button
+                onClick={resetLayout}
+                title="Buang semua posisi tersimpan dan susun ulang dari nol"
+                className="raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium text-tx-2 transition-colors hover:text-tx-1"
+              >
+                <Shuffle className="size-3" /> tata ulang
+              </button>
+              <button
+                onClick={() => centerOnHub()}
+                title="Bawa kamera balik ke entitas paling sibuk"
+                className="raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium text-tx-2 transition-colors hover:text-tx-1"
+              >
+                <Crosshair className="size-3" /> pusatkan
+              </button>
               <button
                 onClick={() => setShowArchive((s) => !s)}
                 className="raised rounded-full px-3 py-1 text-[11px] font-medium text-tx-2 transition-colors hover:text-tx-1"
@@ -394,6 +640,10 @@ export default function GraphPage() {
 
           <div className="grid h-[calc(100vh-11rem)] gap-4 lg:grid-cols-[1fr_340px]">
             <Panel className="well relative overflow-hidden border border-line p-0">
+              {/* Pengukur kotak panel. Canvas force-graph butuh width/height
+                  eksplisit — defaultnya seukuran window, bukan seukuran panel
+                  ini — dan div inilah yang melaporkan ukurannya. */}
+              <div ref={wrapRef} aria-hidden className="pointer-events-none absolute inset-0" />
 
               {/* Kotak cari — lompat ke node tertentu tanpa scroll manual */}
               <div className="absolute left-4 top-4 z-20 w-64">
@@ -435,23 +685,56 @@ export default function GraphPage() {
                   memuat graph…
                 </div>
               )}
-              {data && (
+              {data && size.w > 0 && (
                 <ForceGraph2D
                   ref={fgRef}
+                  width={size.w}
+                  height={size.h}
                   graphData={visibleGraph}
                   nodeId="id"
                   backgroundColor="rgba(0,0,0,0)"
                   cooldownTicks={80}
                   onEngineStop={() => {
+                    // Tetangga yang tadi dilepas sudah berhenti bergerak —
+                    // bekukan di tempatnya yang baru dan simpan, biar reload
+                    // berikutnya mulai dari hasil tarikan tadi.
+                    if (looseRef.current.size) {
+                      for (const id of looseRef.current) {
+                        const n = nodeById.get(id);
+                        if (!n || !Number.isFinite(n.x)) continue;
+                        n.fx = n.x;
+                        n.fy = n.y;
+                        persistNodePosition(n.id, n.x, n.y);
+                      }
+                      looseRef.current.clear();
+                    }
                     if (!didInitialFit.current) {
                       didInitialFit.current = true;
-                      fgRef.current?.zoomToFit(600, 60);
+                      centerOnHub(600);
                     }
                   }}
                   onNodeHover={(n: any) => setHoverNode(n)}
                   onNodeClick={(n: any) => focusNode(n)}
                   onBackgroundClick={() => { setSelected(null); setPopupNode(null); }}
-                  onNodeDrag={() => {
+                  onNodeDrag={(n: any) => {
+                    // Ala Obsidian: tetangga langsungnya ikut tertarik.
+                    //
+                    // Semua node di sini dibekukan (fx/fy) biar layout-nya
+                    // stabil antar-poll, dan node beku KEBAL sama gaya fisika
+                    // -- itu yang bikin drag terasa mati: cuma satu bulatan
+                    // yang gerak, garisnya molor, sisanya diam. Jadi pas drag
+                    // dimulai, bekuan tetangga langsungnya dilepas sekali,
+                    // supaya link-force menyeret mereka ikut jalan.
+                    if (draggingRef.current !== n.id) {
+                      draggingRef.current = n.id;
+                      for (const id of adjacency.get(n.id) ?? []) {
+                        const nb = nodeById.get(id);
+                        if (!nb) continue;
+                        delete nb.fx;
+                        delete nb.fy;
+                        looseRef.current.add(id);
+                      }
+                    }
                     // Simulasi bisa udah "tidur" abis settle awal (cooldownTicks
                     // kepake abis) -- tanpa reheat, node yang ditarik gak
                     // kegambar ikut gerak sama sekali. Aman dipanggil berkali-
@@ -459,12 +742,17 @@ export default function GraphPage() {
                     fgRef.current?.d3ReheatSimulation();
                   }}
                   onNodeDragEnd={(n: any) => {
-                    // Dikunci persis di titik taruh -- gak lompat balik ke
-                    // posisi lama, dan langsung ke-persist biar reload
+                    // Yang ditarik dikunci persis di titik taruh -- gak lompat
+                    // balik ke posisi lama, dan langsung ke-persist biar reload
                     // berikutnya inget posisi manual ini juga.
                     n.fx = n.x;
                     n.fy = n.y;
                     persistNodePosition(n.id, n.x, n.y);
+                    draggingRef.current = null;
+                    // Tetangganya SENGAJA dibiarkan lepas -- mereka masih
+                    // meluncur ke posisi barunya. Dibekukan lagi di
+                    // onEngineStop begitu gerakannya berhenti.
+                    fgRef.current?.d3ReheatSimulation();
                   }}
                   linkDirectionalParticles={2}
                   linkDirectionalParticleWidth={(l: any) => (highlight.links.has(l) ? 2.6 : 1)}
@@ -515,11 +803,12 @@ export default function GraphPage() {
                       ctx.stroke();
                     }
 
-                    const showLabel = isEntity || isFocus;
+                    const showLabel =
+                      isFocus || showLabels[isEntity ? "entity" : node.kind ?? ""];
                     if (showLabel && !dimmed) {
                       const fontSize = Math.max(3, (isEntity ? 12 : 11) / globalScale);
                       ctx.font = `${isEntity ? "600" : "500"} ${fontSize}px ui-sans-serif, system-ui`;
-                      const text = isEntity ? node.label : node.label;
+                      const text = isEntity || isFocus ? node.label : shortLabel(node.label);
                       const tw = ctx.measureText(text).width;
                       const pad = fontSize * 0.35;
                       const ty = node.y + r + fontSize * 0.9;
@@ -581,22 +870,56 @@ export default function GraphPage() {
 
             <div className="space-y-4 overflow-y-auto">
               <Panel className="p-5">
-                <h2 className="mb-3 text-sm font-medium text-tx-2">Legenda</h2>
-                <div className="space-y-2 text-xs">
-                  {Object.entries(C.kind).map(([k, c]) => (
-                    <div key={k} className="flex items-center gap-2 text-tx-2">
-                      <span className="size-2.5 rounded-full" style={{ background: c }} />
-                      {KIND_LABEL[k]}
-                    </div>
-                  ))}
-                  <div className="flex items-center gap-2 text-tx-2">
-                    <span className="size-2.5 rounded-full" style={{ background: C.entity }} />
-                    entitas (ukuran = jumlah tautan)
-                  </div>
+                <h2 className="text-sm font-medium text-tx-2">Legenda</h2>
+                <p className="mb-2.5 mt-1 text-[10.5px] leading-relaxed text-tx-3">
+                  Klik buat menampilkan namanya langsung di graph.
+                </p>
+                <div className="space-y-0.5">
+                  {LEGEND_ROWS.map(({ key, label, note }) => {
+                    const on = !!showLabels[key];
+                    const color = key === "entity" ? C.entity : C.kind[key];
+                    const empty = key === "archive" && !showArchive;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => toggleLabel(key)}
+                        className={cn(
+                          "flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-xs transition-colors hover:bg-sunken",
+                          on ? "text-tx-1" : "text-tx-2"
+                        )}
+                      >
+                        <span
+                          className="size-2.5 shrink-0 rounded-full transition-opacity"
+                          style={{ background: color, opacity: on ? 1 : 0.45 }}
+                        />
+                        <span className="flex-1 truncate">
+                          {label}
+                          {(note || empty) && (
+                            <span className="text-tx-3">
+                              {" · "}
+                              {empty ? "belum dimuat" : note}
+                            </span>
+                          )}
+                        </span>
+                        <span
+                          className={cn(
+                            "flex size-4 shrink-0 items-center justify-center rounded-[5px] border transition-colors",
+                            on
+                              ? "border-transparent bg-accent-tint text-accent-solid"
+                              : "border-line text-transparent"
+                          )}
+                        >
+                          <Check className="size-3" />
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
                 <p className="mt-3 border-t border-line-soft pt-2 text-[10px] leading-relaxed text-tx-3">
                   Bulatan entri membesar mengikuti panjang isinya — konteks
-                  lebih tebal, bulatan lebih besar.
+                  lebih tebal, bulatan lebih besar. Nyalain nama entri sekaligus
+                  banyak bikin canvas padat; paling enak dipakai barengan
+                  &quot;Graf lokal&quot;.
                 </p>
               </Panel>
 
@@ -733,7 +1056,11 @@ export default function GraphPage() {
                 terhubung ke dia — klik area kosong buat matiin.
                 &quot;Graf lokal&quot; mengisolasi cuma node terpilih +
                 tetangga langsungnya, ala local graph Obsidian. Warna node
-                entri mengikuti tier; ungu = entitas tetap.
+                entri mengikuti tier; ungu = entitas tetap. Posisi node
+                tersimpan per browser — &quot;tata ulang&quot; membuangnya dan
+                menyusun ulang dari nol kalau sudah telanjur berdempetan,
+                &quot;pusatkan&quot; cuma membawa kamera balik ke entitas
+                tersibuk tanpa mengubah tata letak.
               </p>
             </div>
           </div>
