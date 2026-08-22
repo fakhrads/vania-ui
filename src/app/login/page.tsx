@@ -3,9 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Brain, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
@@ -25,57 +22,61 @@ export default function LoginPage() {
     if (result) {
       router.push("/");
     } else {
-      setError("Username atau password salah");
+      setError("Nama pengguna atau kata sandi salah");
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm bg-zinc-900 border-zinc-800">
-        <CardContent className="p-8">
-          <div className="flex flex-col items-center mb-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600/20 mb-3">
-              <Brain className="h-6 w-6 text-blue-400" />
-            </div>
-            <h1 className="text-xl font-bold">Fakhri&apos;s Agentic Memory</h1>
-            <p className="text-sm text-zinc-500 mt-1">Login untuk akses memori</p>
+    <div className="flex min-h-screen items-center justify-center bg-bg p-4">
+      <div className="panel w-full max-w-sm rounded-[20px] p-8 shadow-e3">
+        <div className="mb-7 flex flex-col items-center text-center">
+          <div className="raised flex size-12 items-center justify-center rounded-2xl text-accent-solid">
+            <Brain className="size-[22px]" />
+          </div>
+          <h1 className="mt-4 text-[17px] font-semibold tracking-[-0.02em] text-tx-1">
+            Fakhri&apos;s Agentic Memory
+          </h1>
+          <p className="mt-1 text-xs text-tx-3">panel pemantauan baca-saja</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label htmlFor="u" className="mb-1.5 block text-[11px] text-tx-2">Nama pengguna</label>
+            <input
+              id="u"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="well w-full rounded-xl px-4 py-3 text-[13.5px] text-tx-1 outline-none"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label htmlFor="p" className="mb-1.5 block text-[11px] text-tx-2">Kata sandi</label>
+            <input
+              id="p"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="well w-full rounded-xl px-4 py-3 text-[13.5px] text-tx-1 outline-none"
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Input
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="bg-zinc-800 border-zinc-700"
-                autoFocus
-              />
-            </div>
-            <div>
-              <Input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="bg-zinc-800 border-zinc-700"
-              />
-            </div>
+          {error && <p className="text-sm text-bad">{error}</p>}
 
-            {error && (
-              <p className="text-sm text-red-400">{error}</p>
-            )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="raised-2 flex w-full items-center justify-center rounded-xl py-3 text-[13.5px] font-medium text-tx-1 disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="size-4 animate-spin" /> : "Masuk"}
+          </button>
+        </form>
 
-            <Button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={loading}
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Masuk"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+        <p className="mt-6 text-center text-[11px] text-tx-3">
+          Satu pengguna. Sesi berlaku 7 hari.
+        </p>
+      </div>
     </div>
   );
 }

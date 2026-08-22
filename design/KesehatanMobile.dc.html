@@ -1,0 +1,216 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: oklch(.720 .130 274); text-decoration: none; }
+    a:hover { color: oklch(.962 .004 264); }
+    .num { font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  </style>
+</helmet>
+<div style="{{css}}">
+<div style="width: 390px; min-height: 1420px; background: var(--bg); color: var(--tx1); font-size: 14px">
+
+  <!-- Top bar persisten -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin: 12px 12px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--surf1); box-shadow: var(--sh2), var(--inset)">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 11px; background: var(--surf2); border: 1px solid var(--line); box-shadow: var(--sh1), var(--inset); color: var(--accent)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 6 17a3 3 0 0 0 3.5 3V3Z"></path><path d="M14.5 3a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2A3 3 0 0 1 18 17a3 3 0 0 1-3.5 3V3Z"></path></svg>
+      </div>
+      <p style="margin: 0; font-size: 13px; font-weight: 600; color: var(--tx1)">Fakhri's Agentic Memory</p>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 13px; background: var(--surf2); border: 1px solid var(--line); box-shadow: var(--sh1), var(--inset); color: var(--tx1)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+    </div>
+  </div>
+
+  <div style="padding: 20px 16px 32px">
+
+    <div style="margin-bottom: 18px">
+      <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.025em; color: var(--tx1)">Kesehatan Memori</h1>
+      <div style="display: flex; align-items: center; gap: 8px; margin-top: 9px; padding: 7px 13px; border-radius: 999px; background: var(--surf1); border: 1px solid var(--line); box-shadow: var(--sh1), var(--inset); font-size: 11.5px; color: var(--ok); width: fit-content">
+        <svg width="9" height="9" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="var(--ok)"></circle></svg>
+        <span class="num">diperbarui 14.02.11</span>
+      </div>
+    </div>
+
+    <!-- Vonis -->
+    <div style="margin-bottom: 14px; padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--surf1); box-shadow: var(--sh2), var(--inset)">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 13px; background: var(--ok-bg)">
+          <svg width="14" height="14" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="var(--ok)"></circle></svg>
+        </div>
+        <div>
+          <div style="font-size: 17px; font-weight: 600; letter-spacing: -.02em; color: var(--tx1)">Sehat</div>
+          <div style="margin-top: 2px; font-size: 11.5px; color: var(--tx3)">Rekonsiliasi terakhir 12 dtk lalu</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; margin-top: 18px; padding: 14px 16px; border-radius: 14px; background: var(--sunken); box-shadow: var(--sunk)">
+        <div style="flex-grow: 1">
+          <div style="font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">A · state.db</div>
+          <div class="num" style="margin-top: 3px; font-size: 23px; font-weight: 600; color: var(--tx1)">231</div>
+        </div>
+        <div class="num" style="font-size: 18px; color: var(--ok)">=</div>
+        <div style="flex-grow: 1; text-align: right">
+          <div style="font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">B · ltm_ops</div>
+          <div class="num" style="margin-top: 3px; font-size: 23px; font-weight: 600; color: var(--tx1)">231</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metrik 2x2 -->
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px">
+      <div style="padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+        <div style="display: flex; align-items: center; gap: 7px; font-size: 9.5px; text-transform: uppercase; letter-spacing: .13em; color: var(--tx3)">
+          <svg width="9" height="9" viewBox="0 0 10 10"><circle cx="5" cy="5" r="3.4" fill="none" stroke="var(--idle)" stroke-width="1.6"></circle></svg>
+          Baris korpus
+        </div>
+        <div class="num" style="margin-top: 10px; font-size: 26px; font-weight: 600; color: var(--tx1)">231</div>
+        <div style="margin-top: 4px; font-size: 11px; color: var(--tx3)">228 ter-embed</div>
+      </div>
+      <div style="padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+        <div style="display: flex; align-items: center; gap: 7px; font-size: 9.5px; text-transform: uppercase; letter-spacing: .13em; color: var(--tx3)">
+          <svg width="9" height="9" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="var(--ok)"></circle></svg>
+          Tulis · 7 hari
+        </div>
+        <div class="num" style="margin-top: 10px; font-size: 26px; font-weight: 600; color: var(--ok)">46</div>
+        <div style="margin-top: 4px; font-size: 11px; color: var(--tx3)">terakhir 4 mnt lalu</div>
+      </div>
+      <div style="padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+        <div style="display: flex; align-items: center; gap: 7px; font-size: 9.5px; text-transform: uppercase; letter-spacing: .13em; color: var(--tx3)">
+          <svg width="9" height="9" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="var(--ok)"></circle></svg>
+          Baca · 7 hari
+        </div>
+        <div class="num" style="margin-top: 10px; font-size: 26px; font-weight: 600; color: var(--ok)">12</div>
+        <div style="margin-top: 4px; font-size: 11px; color: var(--tx3)">vania_recall</div>
+      </div>
+      <div style="padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+        <div style="display: flex; align-items: center; gap: 7px; font-size: 9.5px; text-transform: uppercase; letter-spacing: .13em; color: var(--tx3)">
+          <svg width="9" height="9" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="var(--ok)"></circle></svg>
+          Error · 24 jam
+        </div>
+        <div class="num" style="margin-top: 10px; font-size: 26px; font-weight: 600; color: var(--ok)">0</div>
+        <div style="margin-top: 4px; font-size: 11px; color: var(--tx3)">2 transien</div>
+      </div>
+    </div>
+
+    <!-- Aktivitas -->
+    <div style="margin-bottom: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px">
+        <h2 style="margin: 0; font-size: 13px; font-weight: 600; color: var(--tx1)">Aktivitas 24 jam</h2>
+        <div style="display: flex; align-items: center; gap: 12px; font-size: 10.5px; color: var(--tx3)">
+          <span style="display: flex; align-items: center; gap: 5px"><span style="width: 8px; height: 8px; border-radius: 3px; background: var(--write)"></span> tulis</span>
+          <span style="display: flex; align-items: center; gap: 5px"><span style="width: 8px; height: 8px; border-radius: 3px; background: var(--read)"></span> baca</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: flex-end; gap: 3px; height: 92px; padding: 7px 9px; border-radius: 13px; background: var(--sunken); box-shadow: var(--sunk)">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 8%; border-radius: 2px; background: var(--read)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 4%; border-radius: 2px; background: var(--read)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 2px; border-radius: 2px; background: var(--line)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 2px; border-radius: 2px; background: var(--line)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 6%; border-radius: 2px; background: var(--read)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 14%; border-radius: 2px; background: var(--read)"></div><div style="height: 9%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 26%; border-radius: 2px; background: var(--read)"></div><div style="height: 18%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 41%; border-radius: 2px; background: var(--read)"></div><div style="height: 27%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 33%; border-radius: 2px; background: var(--read)"></div><div style="height: 21%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 22%; border-radius: 2px; background: var(--read)"></div><div style="height: 12%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 17%; border-radius: 2px; background: var(--read)"></div><div style="height: 8%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 9%; border-radius: 2px; background: var(--read)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 13%; border-radius: 2px; background: var(--read)"></div><div style="height: 6%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 29%; border-radius: 2px; background: var(--read)"></div><div style="height: 19%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 48%; border-radius: 2px; background: var(--read)"></div><div style="height: 31%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 61%; border-radius: 2px; background: var(--read)"></div><div style="height: 39%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 44%; border-radius: 2px; background: var(--read)"></div><div style="height: 24%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 31%; border-radius: 2px; background: var(--read)"></div><div style="height: 16%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 19%; border-radius: 2px; background: var(--read)"></div><div style="height: 11%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 24%; border-radius: 2px; background: var(--read)"></div><div style="height: 9%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 37%; border-radius: 2px; background: var(--read)"></div><div style="height: 22%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 52%; border-radius: 2px; background: var(--read)"></div><div style="height: 34%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 28%; border-radius: 2px; background: var(--read)"></div><div style="height: 14%; background: var(--write)"></div></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%"><div style="height: 16%; border-radius: 2px; background: var(--read)"></div><div style="height: 7%; background: var(--write)"></div></div>
+      </div>
+    </div>
+
+    <!-- Tier -->
+    <div style="margin-bottom: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+      <h2 style="margin: 0 0 15px; font-size: 13px; font-weight: 600; color: var(--tx1)">Tier korpus</h2>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <span class="num" style="padding: 3px 11px; border-radius: 999px; font-size: 11px; color: var(--seed); background: var(--accent-bg)">seed</span>
+          <span class="num" style="font-size: 13px; color: var(--tx1)">142</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <span class="num" style="padding: 3px 11px; border-radius: 999px; font-size: 11px; color: var(--active); background: var(--ok-bg)">active</span>
+          <span class="num" style="font-size: 13px; color: var(--tx1)">71</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <span class="num" style="padding: 3px 11px; border-radius: 999px; font-size: 11px; color: var(--evicted); background: var(--warn-bg)">evicted</span>
+          <span class="num" style="font-size: 13px; color: var(--tx1)">14</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <span class="num" style="padding: 3px 11px; border-radius: 999px; font-size: 11px; color: var(--archive); background: var(--idle-bg)">archive</span>
+          <span class="num" style="font-size: 13px; color: var(--tx1)">4</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Operasi terakhir -->
+    <div style="padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+      <h2 style="margin: 0 0 14px; font-size: 13px; font-weight: 600; color: var(--tx1)">Operasi terakhir</h2>
+      <div style="display: flex; flex-direction: column; gap: 3px">
+        <div style="display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: 12px; background: var(--surf2); border: 1px solid var(--line); box-shadow: var(--sh1), var(--inset)">
+          <svg width="9" height="9" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="var(--ok)"></circle></svg>
+          <span class="num" style="flex-grow: 1; font-size: 12px; color: var(--tx1)">add</span>
+          <span class="num" style="font-size: 11px; color: var(--ok)">+1</span>
+          <span class="num" style="font-size: 11px; color: var(--tx3)">13.58</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: 12px">
+          <svg width="9" height="9" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="var(--ok)"></circle></svg>
+          <span class="num" style="flex-grow: 1; font-size: 12px; color: var(--tx2)">recall</span>
+          <span class="num" style="font-size: 11px; color: var(--tx3)">13.51</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: 12px">
+          <svg width="9" height="9" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="var(--ok)"></circle></svg>
+          <span class="num" style="flex-grow: 1; font-size: 12px; color: var(--tx2)">replace</span>
+          <span class="num" style="font-size: 11px; color: var(--tx3)"><span style="color: var(--ok)">+1</span> <span style="color: var(--evicted)">−1</span></span>
+          <span class="num" style="font-size: 11px; color: var(--tx3)">13.47</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: 12px">
+          <svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 1 9.3 8.5H.7Z" fill="var(--warn)"></path></svg>
+          <span class="num" style="flex-grow: 1; font-size: 12px; color: var(--tx2)">add</span>
+          <span style="font-size: 11px; color: var(--warn)">transien</span>
+          <span class="num" style="font-size: 11px; color: var(--tx3)">13.30</span>
+        </div>
+      </div>
+    </div>
+
+    <p style="margin: 24px 0 0; text-align: center; font-size: 11px; color: var(--tx3)">Panel baca-saja. Memori hanya berubah lewat Vania.</p>
+  </div>
+</div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"tema":{"editor":"enum","options":["gelap","terang"],"default":"gelap"},"$preview":{"width":390,"height":1460}}'>
+class Component extends DCLogic {
+  themes() {
+    return {
+      gelap: "--bg:oklch(.168 .008 264);--sunken:oklch(.142 .008 264);--surf1:oklch(.222 .009 264);--surf2:oklch(.262 .010 264);--surf3:oklch(.305 .011 264);--line:oklch(.318 .012 264);--line-soft:oklch(.262 .010 264);--tx1:oklch(.962 .004 264);--tx2:oklch(.780 .008 264);--tx3:oklch(.620 .010 264);--accent:oklch(.720 .130 274);--accent-bg:oklch(.300 .060 274);--ok:oklch(.780 .140 158);--ok-bg:oklch(.290 .055 158);--warn:oklch(.830 .130 78);--warn-bg:oklch(.300 .050 78);--bad:oklch(.720 .160 18);--bad-bg:oklch(.300 .065 18);--idle:oklch(.620 .010 264);--idle-bg:oklch(.270 .008 264);--seed:oklch(.750 .130 240);--active:oklch(.780 .140 158);--evicted:oklch(.830 .130 78);--archive:oklch(.620 .010 264);--entity:oklch(.740 .130 300);--read:oklch(.720 .130 250);--write:oklch(.700 .140 300);--sh1:0 1px 2px rgba(0,0,0,.45),0 6px 18px -10px rgba(0,0,0,.8);--sh2:0 2px 4px rgba(0,0,0,.5),0 14px 32px -14px rgba(0,0,0,.85);--sh3:0 8px 14px rgba(0,0,0,.5),0 28px 56px -20px rgba(0,0,0,.9);--inset:inset 0 1px 0 rgba(255,255,255,.055);--sunk:inset 0 2px 4px rgba(0,0,0,.45)",
+      terang: "--bg:oklch(.951 .004 264);--sunken:oklch(.922 .005 264);--surf1:oklch(1 0 0);--surf2:oklch(1 0 0);--surf3:oklch(1 0 0);--line:oklch(.905 .006 264);--line-soft:oklch(.935 .005 264);--tx1:oklch(.260 .014 264);--tx2:oklch(.460 .012 264);--tx3:oklch(.600 .010 264);--accent:oklch(.550 .160 274);--accent-bg:oklch(.945 .040 274);--ok:oklch(.550 .140 158);--ok-bg:oklch(.945 .045 158);--warn:oklch(.600 .130 70);--warn-bg:oklch(.950 .050 78);--bad:oklch(.550 .190 22);--bad-bg:oklch(.950 .045 20);--idle:oklch(.600 .010 264);--idle-bg:oklch(.945 .004 264);--seed:oklch(.550 .140 240);--active:oklch(.550 .140 158);--evicted:oklch(.600 .130 70);--archive:oklch(.600 .010 264);--entity:oklch(.550 .160 300);--read:oklch(.550 .150 250);--write:oklch(.520 .170 300);--sh1:0 1px 2px rgba(17,20,34,.06),0 4px 12px -6px rgba(17,20,34,.10);--sh2:0 2px 4px rgba(17,20,34,.07),0 12px 24px -10px rgba(17,20,34,.14);--sh3:0 6px 10px rgba(17,20,34,.08),0 24px 48px -16px rgba(17,20,34,.20);--inset:inset 0 1px 0 rgba(255,255,255,.9);--sunk:inset 0 2px 4px rgba(17,20,34,.09)"
+    };
+  }
+  renderVals() {
+    const t = this.themes();
+    return { css: t[this.props.tema] || t.gelap };
+  }
+}
+</script>
+</body>
+</html>

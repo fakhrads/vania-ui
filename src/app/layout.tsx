@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
-import { Noto_Sans } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
+import { themeBootScript } from "@/lib/theme";
 
-const notoSans = Noto_Sans({
+const sans = IBM_Plex_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+});
+
+const mono = IBM_Plex_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -16,11 +23,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className="dark" suppressHydrationWarning>
-      <body className={`${notoSans.variable} font-sans antialiased bg-zinc-950 text-zinc-100`}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+    <html lang="id" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
+      <body className={`${sans.variable} ${mono.variable} font-sans antialiased bg-bg text-tx-1`}>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

@@ -1,0 +1,81 @@
+<div style="{{css}}">
+<div style="min-height: 600px; padding: 30px 32px; background: var(--bg); color: var(--tx1); font-size: 14px">
+
+  <div style="margin-bottom: 22px">
+    <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.02em; color: var(--tx1)">Vonis — keadaan alarm</h1>
+    <p style="margin: 5px 0 0; font-size: 12.5px; color: var(--tx3)">Keadaan yang sebenarnya perlu didesain: bukan panel kosong, tapi panel yang salah.</p>
+  </div>
+
+  <div style="border: 1px solid var(--bad); border-radius: 20px; background: var(--surf1); box-shadow: var(--sh2), var(--inset); overflow: hidden">
+    <div style="display: flex; align-items: center; gap: 34px; padding: 24px 26px">
+      <div style="display: flex; align-items: center; gap: 13px">
+        <div style="display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 14px; background: var(--bad-bg)">
+          <svg width="15" height="15" viewBox="0 0 10 10"><path d="M5 .6 9.4 5 5 9.4.6 5Z" fill="var(--bad)"></path></svg>
+        </div>
+        <div>
+          <div style="font-size: 18px; font-weight: 600; letter-spacing: -.02em; color: var(--tx1)">Perlu perhatian</div>
+          <div style="margin-top: 2px; font-size: 12px; color: var(--tx3)">Rekonsiliasi terakhir 3 jam lalu</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 22px; padding-left: 34px; border-left: 1px solid var(--line-soft)">
+        <div>
+          <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">A · state.db</div>
+          <div class="num" style="margin-top: 4px; font-size: 26px; font-weight: 600; color: var(--tx1)">231</div>
+        </div>
+        <div class="num" style="font-size: 20px; color: var(--bad); padding-top: 14px">≠</div>
+        <div>
+          <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">B · ltm_ops</div>
+          <div class="num" style="margin-top: 4px; font-size: 26px; font-weight: 600; color: var(--bad)">228</div>
+        </div>
+      </div>
+
+      <p style="margin: 0; max-width: 300px; font-size: 12px; line-height: 1.6; color: var(--tx3)">Selisih 3 operasi. Hermes mencatatnya, plugin tidak.</p>
+    </div>
+
+    <div style="padding: 18px 26px; border-top: 1px solid var(--line-soft); background: var(--bad-bg)">
+      <div style="margin-bottom: 11px; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; color: var(--bad)">2 alarm</div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; gap: 10px; font-size: 13px; color: var(--tx1)">
+          <svg width="10" height="10" viewBox="0 0 10 10" style="flex-shrink: 0; margin-top: 5px"><path d="M5 .6 9.4 5 5 9.4.6 5Z" fill="var(--bad)"></path></svg>
+          <span>state.db mencatat 3 operasi yang tidak ada di <span class="num">vania_ltm_ops</span></span>
+        </div>
+        <div style="display: flex; gap: 10px; font-size: 13px; color: var(--tx1)">
+          <svg width="10" height="10" viewBox="0 0 10 10" style="flex-shrink: 0; margin-top: 5px"><path d="M5 .6 9.4 5 5 9.4.6 5Z" fill="var(--bad)"></path></svg>
+          <span><span class="num">MEMORY.md</span> tidak cocok dengan korpus</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px">
+
+    <div style="padding: 19px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 .6 9.4 5 5 9.4.6 5Z" fill="var(--bad)"></path></svg>
+        Error · 24 jam
+      </div>
+      <div class="num" style="margin-top: 12px; font-size: 31px; font-weight: 600; color: var(--bad)">3</div>
+      <div style="margin-top: 6px; font-size: 12px; color: var(--tx3)">2 tulisan transien</div>
+    </div>
+
+    <div style="padding: 19px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1 9.3 8.5H.7Z" fill="var(--warn)"></path></svg>
+        Tanpa embedding
+      </div>
+      <div class="num" style="margin-top: 12px; font-size: 31px; font-weight: 600; color: var(--warn)">3</div>
+      <div style="margin-top: 6px; font-size: 12px; color: var(--tx3)">tidak bisa dicari sama sekali</div>
+    </div>
+
+    <div style="padding: 19px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+      <div style="margin-bottom: 12px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">Ruangan tidak cocok</div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
+        <span class="num" style="font-size: 12px; color: var(--tx1)">MEMORY.md</span>
+        <span style="padding: 3px 10px; border-radius: 999px; font-size: 10.5px; color: var(--bad); background: var(--bad-bg)">tidak cocok</span>
+      </div>
+      <div class="num" style="margin-top: 7px; font-size: 11.5px; color: var(--tx3)">berkas 12 · korpus 9</div>
+    </div>
+  </div>
+</div>
+</div>

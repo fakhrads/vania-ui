@@ -1,0 +1,44 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Layar" },
+    { "id": "page-2", "name": "Sistem" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 1300, "title": "Kesehatan — desktop", "page": "page-1" },
+    { "file": "Alarm.dc.html", "x": 1560, "y": 0, "w": 1000, "h": 600, "title": "Vonis — keadaan alarm", "page": "page-1" },
+    { "file": "KesehatanMobile.dc.html", "x": 2680, "y": 0, "w": 390, "h": 1460, "title": "Kesehatan — mobile", "page": "page-1" },
+    { "file": "Graph.dc.html", "x": 0, "y": 1580, "w": 1440, "h": 1180, "title": "Graph + warna canvas", "page": "page-1" },
+    { "file": "Audit.dc.html", "x": 1560, "y": 1580, "w": 1440, "h": 980, "title": "Audit — tabel padat", "page": "page-1" },
+    { "file": "Cari.dc.html", "x": 3120, "y": 1580, "w": 1440, "h": 900, "title": "Cari", "page": "page-1" },
+    { "file": "Masuk.dc.html", "x": 0, "y": 2900, "w": 1120, "h": 620, "title": "Masuk + gerbang auth", "page": "page-1" },
+    { "file": "Fondasi.dc.html", "x": 0, "y": 0, "w": 1280, "h": 1620, "title": "Fondasi", "page": "page-2" },
+    { "file": "Komponen.dc.html", "x": 1400, "y": 0, "w": 1400, "h": 1420, "title": "Komponen", "page": "page-2" }
+  ],
+  "annotations": [
+    {
+      "id": "tema",
+      "x": 0,
+      "y": -170,
+      "w": 460,
+      "page": "page-1",
+      "text": "Tiap artboard layar punya chip tweak \"tema\" di atasnya — ganti ke terang buat lihat palet keduanya.\n\nArtboard tidak berbagi state, jadi tiap layar diganti sendiri-sendiri."
+    },
+    {
+      "id": "canvas-warna",
+      "x": 520,
+      "y": -170,
+      "w": 480,
+      "page": "page-1",
+      "text": "Graph digambar di canvas 2D dan canvas tidak bisa baca CSS variable.\n\nArtboard Graph memuat dua set nilai harfiah — terang dan gelap — yang harus ditulis langsung di graph/page.tsx. Tanpa itu graph jadi tak terbaca di tema terang."
+    },
+    {
+      "id": "elevasi",
+      "x": 0,
+      "y": -150,
+      "w": 520,
+      "page": "page-2",
+      "text": "Mekanisme elevasi beda antar tema, dan ini bagian yang paling gampang salah:\n\nTerang — permukaan tetap putih, kedalaman dibawa bayangan.\nGelap — bayangan nyaris tak terlihat, jadi kedalaman dibawa terang permukaan plus garis sorot 1px di tepi atas.\n\nJangan cuma tukar warna."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}

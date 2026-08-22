@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: oklch(.720 .130 274); text-decoration: none; }
+    a:hover { color: oklch(.962 .004 264); }
+    .num { font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  </style>
+</helmet>
+<div style="{{css}}">
+<div style="min-height: 600px; padding: 30px 32px; background: var(--bg); color: var(--tx1); font-size: 14px">
+
+  <div style="margin-bottom: 22px">
+    <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.02em; color: var(--tx1)">Vonis — keadaan alarm</h1>
+    <p style="margin: 5px 0 0; font-size: 12.5px; color: var(--tx3)">Keadaan yang sebenarnya perlu didesain: bukan panel kosong, tapi panel yang salah.</p>
+  </div>
+
+  <div style="border: 1px solid var(--bad); border-radius: 20px; background: var(--surf1); box-shadow: var(--sh2), var(--inset); overflow: hidden">
+    <div style="display: flex; align-items: center; gap: 34px; padding: 24px 26px">
+      <div style="display: flex; align-items: center; gap: 13px">
+        <div style="display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 14px; background: var(--bad-bg)">
+          <svg width="15" height="15" viewBox="0 0 10 10"><path d="M5 .6 9.4 5 5 9.4.6 5Z" fill="var(--bad)"></path></svg>
+        </div>
+        <div>
+          <div style="font-size: 18px; font-weight: 600; letter-spacing: -.02em; color: var(--tx1)">Perlu perhatian</div>
+          <div style="margin-top: 2px; font-size: 12px; color: var(--tx3)">Rekonsiliasi terakhir 3 jam lalu</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 22px; padding-left: 34px; border-left: 1px solid var(--line-soft)">
+        <div>
+          <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">A · state.db</div>
+          <div class="num" style="margin-top: 4px; font-size: 26px; font-weight: 600; color: var(--tx1)">231</div>
+        </div>
+        <div class="num" style="font-size: 20px; color: var(--bad); padding-top: 14px">≠</div>
+        <div>
+          <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">B · ltm_ops</div>
+          <div class="num" style="margin-top: 4px; font-size: 26px; font-weight: 600; color: var(--bad)">228</div>
+        </div>
+      </div>
+
+      <p style="margin: 0; max-width: 300px; font-size: 12px; line-height: 1.6; color: var(--tx3)">Selisih 3 operasi. Hermes mencatatnya, plugin tidak.</p>
+    </div>
+
+    <div style="padding: 18px 26px; border-top: 1px solid var(--line-soft); background: var(--bad-bg)">
+      <div style="margin-bottom: 11px; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; color: var(--bad)">2 alarm</div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; gap: 10px; font-size: 13px; color: var(--tx1)">
+          <svg width="10" height="10" viewBox="0 0 10 10" style="flex-shrink: 0; margin-top: 5px"><path d="M5 .6 9.4 5 5 9.4.6 5Z" fill="var(--bad)"></path></svg>
+          <span>state.db mencatat 3 operasi yang tidak ada di <span class="num">vania_ltm_ops</span></span>
+        </div>
+        <div style="display: flex; gap: 10px; font-size: 13px; color: var(--tx1)">
+          <svg width="10" height="10" viewBox="0 0 10 10" style="flex-shrink: 0; margin-top: 5px"><path d="M5 .6 9.4 5 5 9.4.6 5Z" fill="var(--bad)"></path></svg>
+          <span><span class="num">MEMORY.md</span> tidak cocok dengan korpus</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px">
+
+    <div style="padding: 19px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 .6 9.4 5 5 9.4.6 5Z" fill="var(--bad)"></path></svg>
+        Error · 24 jam
+      </div>
+      <div class="num" style="margin-top: 12px; font-size: 31px; font-weight: 600; color: var(--bad)">3</div>
+      <div style="margin-top: 6px; font-size: 12px; color: var(--tx3)">2 tulisan transien</div>
+    </div>
+
+    <div style="padding: 19px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1 9.3 8.5H.7Z" fill="var(--warn)"></path></svg>
+        Tanpa embedding
+      </div>
+      <div class="num" style="margin-top: 12px; font-size: 31px; font-weight: 600; color: var(--warn)">3</div>
+      <div style="margin-top: 6px; font-size: 12px; color: var(--tx3)">tidak bisa dicari sama sekali</div>
+    </div>
+
+    <div style="padding: 19px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+      <div style="margin-bottom: 12px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">Ruangan tidak cocok</div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
+        <span class="num" style="font-size: 12px; color: var(--tx1)">MEMORY.md</span>
+        <span style="padding: 3px 10px; border-radius: 999px; font-size: 10.5px; color: var(--bad); background: var(--bad-bg)">tidak cocok</span>
+      </div>
+      <div class="num" style="margin-top: 7px; font-size: 11.5px; color: var(--tx3)">berkas 12 · korpus 9</div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"tema":{"editor":"enum","options":["gelap","terang"],"default":"gelap"},"$preview":{"width":1000,"height":600}}'>
+class Component extends DCLogic {
+  themes() {
+    return {
+      gelap: "--bg:oklch(.168 .008 264);--sunken:oklch(.142 .008 264);--surf1:oklch(.222 .009 264);--surf2:oklch(.262 .010 264);--surf3:oklch(.305 .011 264);--line:oklch(.318 .012 264);--line-soft:oklch(.262 .010 264);--tx1:oklch(.962 .004 264);--tx2:oklch(.780 .008 264);--tx3:oklch(.620 .010 264);--accent:oklch(.720 .130 274);--accent-bg:oklch(.300 .060 274);--ok:oklch(.780 .140 158);--ok-bg:oklch(.290 .055 158);--warn:oklch(.830 .130 78);--warn-bg:oklch(.300 .050 78);--bad:oklch(.720 .160 18);--bad-bg:oklch(.300 .065 18);--idle:oklch(.620 .010 264);--idle-bg:oklch(.270 .008 264);--seed:oklch(.750 .130 240);--active:oklch(.780 .140 158);--evicted:oklch(.830 .130 78);--archive:oklch(.620 .010 264);--entity:oklch(.740 .130 300);--read:oklch(.720 .130 250);--write:oklch(.700 .140 300);--sh1:0 1px 2px rgba(0,0,0,.45),0 6px 18px -10px rgba(0,0,0,.8);--sh2:0 2px 4px rgba(0,0,0,.5),0 14px 32px -14px rgba(0,0,0,.85);--sh3:0 8px 14px rgba(0,0,0,.5),0 28px 56px -20px rgba(0,0,0,.9);--inset:inset 0 1px 0 rgba(255,255,255,.055);--sunk:inset 0 2px 4px rgba(0,0,0,.45)",
+      terang: "--bg:oklch(.951 .004 264);--sunken:oklch(.922 .005 264);--surf1:oklch(1 0 0);--surf2:oklch(1 0 0);--surf3:oklch(1 0 0);--line:oklch(.905 .006 264);--line-soft:oklch(.935 .005 264);--tx1:oklch(.260 .014 264);--tx2:oklch(.460 .012 264);--tx3:oklch(.600 .010 264);--accent:oklch(.550 .160 274);--accent-bg:oklch(.945 .040 274);--ok:oklch(.550 .140 158);--ok-bg:oklch(.945 .045 158);--warn:oklch(.600 .130 70);--warn-bg:oklch(.950 .050 78);--bad:oklch(.550 .190 22);--bad-bg:oklch(.950 .045 20);--idle:oklch(.600 .010 264);--idle-bg:oklch(.945 .004 264);--seed:oklch(.550 .140 240);--active:oklch(.550 .140 158);--evicted:oklch(.600 .130 70);--archive:oklch(.600 .010 264);--entity:oklch(.550 .160 300);--read:oklch(.550 .150 250);--write:oklch(.520 .170 300);--sh1:0 1px 2px rgba(17,20,34,.06),0 4px 12px -6px rgba(17,20,34,.10);--sh2:0 2px 4px rgba(17,20,34,.07),0 12px 24px -10px rgba(17,20,34,.14);--sh3:0 6px 10px rgba(17,20,34,.08),0 24px 48px -16px rgba(17,20,34,.20);--inset:inset 0 1px 0 rgba(255,255,255,.9);--sunk:inset 0 2px 4px rgba(17,20,34,.09)"
+    };
+  }
+  renderVals() {
+    const t = this.themes();
+    return { css: t[this.props.tema] || t.gelap };
+  }
+}
+</script>
+</body>
+</html>

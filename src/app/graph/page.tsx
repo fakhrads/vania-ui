@@ -4,7 +4,8 @@ import dynamic from "next/dynamic";
 import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
-import { Glass, Pill, StatusDot, useLive, type Tone } from "@/components/monitor";
+import { Panel, Pill, StatusDot, useLive, type Tone } from "@/components/monitor";
+import { useTheme } from "@/lib/theme";
 import { Lock, Globe, RefreshCw, Search, Flame, X, Focus, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,13 +28,57 @@ type Node = {
 type Link = { source: string; target: string };
 type Graph = { nodes: Node[]; links: Link[]; stats: { entries: number; entities: number; edges: number } };
 
-const KIND_COLOR: Record<string, string> = {
-  seed: "#38bdf8", active: "#34d399", evicted: "#fbbf24", archive: "#71717a",
-};
 const KIND_LABEL: Record<string, string> = {
   seed: "fakta inti", active: "aktif", evicted: "pernah aktif", archive: "arsip",
 };
-const ENTITY_COLOR = "#a78bfa";
+
+/**
+ * Palet canvas — dua set nilai harfiah, bukan CSS variable.
+ *
+ * Graph digambar ke <canvas> lewat ctx.fillStyle/strokeStyle, dan canvas
+ * tidak bisa membaca custom property. Jadi setiap warna di sini harus
+ * ditulis dua kali dan dipilih di runtime lewat tema aktif; kalau tidak,
+ * graph jadi tak terbaca begitu pengguna pindah ke tema terang.
+ */
+type CanvasPalette = {
+  kind: Record<string, string>;
+  entity: string;
+  fallback: string;
+  linkIdle: string;
+  linkOn: string;
+  linkOff: string;
+  label: string;
+  labelEntity: string;
+  labelBg: string;
+  focusRing: string;
+};
+
+const CANVAS: Record<"dark" | "light", CanvasPalette> = {
+  dark: {
+    kind: { seed: "#5aa9f8", active: "#3ad39b", evicted: "#f0b74a", archive: "#8b8f9c" },
+    entity: "#b98cf5",
+    fallback: "#8b8f9c",
+    linkIdle: "rgba(255,255,255,0.10)",
+    linkOn: "rgba(255,255,255,0.85)",
+    linkOff: "rgba(255,255,255,0.03)",
+    label: "#dfe2ea",
+    labelEntity: "#e9d5ff",
+    labelBg: "rgba(18,20,26,0.78)",
+    focusRing: "#ffffff",
+  },
+  light: {
+    kind: { seed: "#1f6fd0", active: "#16855c", evicted: "#a86a06", archive: "#6b7080" },
+    entity: "#7b3fd4",
+    fallback: "#6b7080",
+    linkIdle: "rgba(20,24,40,0.14)",
+    linkOn: "rgba(20,24,40,0.75)",
+    linkOff: "rgba(20,24,40,0.04)",
+    label: "#2a2f3d",
+    labelEntity: "#4a1f8f",
+    labelBg: "rgba(255,255,255,0.86)",
+    focusRing: "#14182a",
+  },
+};
 
 function fmtDate(iso?: string) {
   if (!iso) return "—";
@@ -54,6 +99,8 @@ function nodeRadius(node: any, deg: number) {
 }
 
 export default function GraphPage() {
+  const { isDark } = useTheme();
+  const C = isDark ? CANVAS.dark : CANVAS.light;
   const [showArchive, setShowArchive] = useState(false);
   const { data, err, refresh } = useLive<Graph>(
     `/api/graph${showArchive ? "?all=1" : ""}`, 60000
@@ -298,23 +345,29 @@ export default function GraphPage() {
     return () => cancelAnimationFrame(raf);
   }, [popupNode, graphData]);
 
+  // Simulasi berhenti setelah cooldown, jadi canvas tidak menggambar ulang
+  // dengan sendirinya. Tanpa ini pindah tema tidak mengubah apa pun di
+  // canvas sampai ada interaksi berikutnya.
+  useEffect(() => {
+    fgRef.current?.refresh?.();
+  }, [isDark]);
+
   const tone: Tone = !data ? "idle" : err ? "bad" : "ok";
 
   return (
     <Guard>
-      <div className="flex flex-col min-h-screen lg:flex-row">
-        <div className="mesh-bg" />
+      <div className="flex min-h-screen flex-col lg:flex-row">
         <Sidebar />
 
         <main className="flex-1 overflow-hidden px-6 py-8 lg:px-10">
           <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
+              <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">
                 Graph Memori
               </h1>
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-1 text-sm text-tx-3">
                 Entri &amp; entitas — sama persis dengan vault Obsidian, langsung dari{" "}
-                <span className="font-mono text-zinc-400">vania_ltm</span>
+                <span className="num text-tx-2">vania_ltm</span>
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -326,13 +379,13 @@ export default function GraphPage() {
               )}
               <button
                 onClick={() => setShowArchive((s) => !s)}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium text-zinc-400 transition-colors hover:text-zinc-200"
+                className="raised rounded-full px-3 py-1 text-[11px] font-medium text-tx-2 transition-colors hover:text-tx-1"
               >
                 {showArchive ? "sembunyikan arsip" : "tampilkan arsip"}
               </button>
               <button
                 onClick={() => refresh()}
-                className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium text-zinc-400 transition-colors hover:text-zinc-200"
+                className="raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium text-tx-2 transition-colors hover:text-tx-1"
               >
                 <RefreshCw className="size-3" /> muat ulang
               </button>
@@ -340,31 +393,30 @@ export default function GraphPage() {
           </header>
 
           <div className="grid h-[calc(100vh-11rem)] gap-4 lg:grid-cols-[1fr_340px]">
-            <Glass className="relative overflow-hidden p-0">
-              <div className="graph-dots" />
+            <Panel className="well relative overflow-hidden border border-line p-0">
 
               {/* Kotak cari — lompat ke node tertentu tanpa scroll manual */}
               <div className="absolute left-4 top-4 z-20 w-64">
-                <div className="glass flex items-center gap-2 rounded-2xl px-3 py-2">
-                  <Search className="size-3.5 shrink-0 text-zinc-500" />
+                <div className="panel flex items-center gap-2 rounded-xl px-3 py-2">
+                  <Search className="size-3.5 shrink-0 text-tx-3" />
                   <input
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="cari entri atau entitas…"
-                    className="w-full bg-transparent text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none"
+                    className="w-full bg-transparent text-xs text-tx-1 placeholder:text-tx-3 focus:outline-none"
                   />
                 </div>
                 {suggestions.length > 0 && (
-                  <div className="glass mt-1.5 max-h-72 overflow-y-auto rounded-2xl p-1.5">
+                  <div className="overlay mt-1.5 max-h-72 overflow-y-auto rounded-xl p-1.5">
                     {suggestions.map((n) => (
                       <button
                         key={n.id}
                         onClick={() => focusNode(n)}
-                        className="flex w-full items-start gap-2 rounded-xl px-2.5 py-2 text-left text-xs text-zinc-300 hover:bg-white/[0.06]"
+                        className="flex w-full items-start gap-2 rounded-xl px-2.5 py-2 text-left text-xs text-tx-2 hover:bg-sunken"
                       >
                         <span
                           className="mt-1 size-1.5 shrink-0 rounded-full"
-                          style={{ background: n.type === "entity" ? ENTITY_COLOR : (KIND_COLOR[n.kind ?? ""] ?? "#71717a") }}
+                          style={{ background: n.type === "entity" ? C.entity : (C.kind[n.kind ?? ""] ?? C.fallback) }}
                         />
                         <span className="line-clamp-2">{n.content ?? n.label}</span>
                       </button>
@@ -374,12 +426,12 @@ export default function GraphPage() {
               </div>
 
               {err && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-rose-300">
+                <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-bad">
                   gagal memuat — {err}
                 </div>
               )}
               {!data && !err && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-zinc-500">
+                <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-tx-3">
                   memuat graph…
                 </div>
               )}
@@ -419,12 +471,12 @@ export default function GraphPage() {
                   linkDirectionalParticleSpeed={0.004}
                   linkDirectionalParticleColor={(l: any) => {
                     const t = typeof l.target === "object" ? l.target : null;
-                    return t?.type === "entity" ? ENTITY_COLOR : "#71717a";
+                    return t?.type === "entity" ? C.entity : C.fallback;
                   }}
                   linkColor={(l: any) =>
                     highlight.links.size
-                      ? highlight.links.has(l) ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.03)"
-                      : "rgba(255,255,255,0.12)"
+                      ? highlight.links.has(l) ? C.linkOn : C.linkOff
+                      : C.linkIdle
                   }
                   linkWidth={(l: any) => (highlight.links.has(l) ? 2.4 : 1)}
                   nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
@@ -438,7 +490,7 @@ export default function GraphPage() {
                     const r = nodeRadius(node, deg);
                     const dimmed = highlight.nodes.size > 0 && !highlight.nodes.has(node.id);
                     const isFocus = anchor?.id === node.id;
-                    const color = isEntity ? ENTITY_COLOR : (KIND_COLOR[node.kind] ?? "#71717a");
+                    const color = isEntity ? C.entity : (C.kind[node.kind] ?? C.fallback);
 
                     ctx.save();
                     ctx.globalAlpha = dimmed ? 0.12 : 1;
@@ -459,7 +511,7 @@ export default function GraphPage() {
                     ctx.fill();
                     if (isFocus) {
                       ctx.lineWidth = 1.8;
-                      ctx.strokeStyle = "#fff";
+                      ctx.strokeStyle = C.focusRing;
                       ctx.stroke();
                     }
 
@@ -471,9 +523,9 @@ export default function GraphPage() {
                       const tw = ctx.measureText(text).width;
                       const pad = fontSize * 0.35;
                       const ty = node.y + r + fontSize * 0.9;
-                      ctx.fillStyle = "rgba(8,8,11,0.72)";
+                      ctx.fillStyle = C.labelBg;
                       ctx.fillRect(node.x - tw / 2 - pad, ty - fontSize * 0.8, tw + pad * 2, fontSize * 1.3);
-                      ctx.fillStyle = isEntity ? "#e9d5ff" : "#e4e4e7";
+                      ctx.fillStyle = isEntity ? C.labelEntity : C.label;
                       ctx.textAlign = "center";
                       ctx.fillText(text, node.x, ty - fontSize * 0.15);
                     }
@@ -496,89 +548,89 @@ export default function GraphPage() {
               {popupNode && (
                 <div
                   ref={popupRef}
-                  className="glass pointer-events-auto absolute left-0 top-0 z-30 w-72 rounded-2xl p-4"
+                  className="overlay pointer-events-auto absolute left-0 top-0 z-30 w-72 rounded-2xl p-4"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <span
                         className="size-2.5 shrink-0 rounded-full"
-                        style={{ background: popupNode.type === "entity" ? ENTITY_COLOR : (KIND_COLOR[popupNode.kind ?? ""] ?? "#71717a") }}
+                        style={{ background: popupNode.type === "entity" ? C.entity : (C.kind[popupNode.kind ?? ""] ?? C.fallback) }}
                       />
-                      <span className="text-xs font-medium text-zinc-200">
+                      <span className="text-xs font-medium text-tx-1">
                         {popupNode.type === "entity" ? "Entitas" : KIND_LABEL[popupNode.kind ?? ""] ?? "Entri"}
                       </span>
                     </div>
                     <button
                       onClick={() => setPopupNode(null)}
-                      className="text-zinc-500 hover:text-zinc-200"
+                      className="text-tx-3 hover:text-tx-1"
                     >
                       <X className="size-3.5" />
                     </button>
                   </div>
-                  <p className="mt-2 line-clamp-5 text-xs leading-relaxed text-zinc-300">
+                  <p className="mt-2 line-clamp-5 text-xs leading-relaxed text-tx-2">
                     {popupNode.type === "entity"
                       ? `${popupNode.label} — disebut di ${degree.get(popupNode.id) ?? 0} entri`
                       : popupNode.content}
                   </p>
-                  <p className="mt-2 text-[10px] text-zinc-600">
+                  <p className="mt-2 text-[10px] text-tx-3">
                     {highlight.links.size} garis tersorot ke node terhubung — detail lengkap di panel kanan
                   </p>
                 </div>
               )}
-            </Glass>
+            </Panel>
 
             <div className="space-y-4 overflow-y-auto">
-              <Glass className="p-5">
-                <h2 className="mb-3 text-sm font-medium text-zinc-300">Legenda</h2>
+              <Panel className="p-5">
+                <h2 className="mb-3 text-sm font-medium text-tx-2">Legenda</h2>
                 <div className="space-y-2 text-xs">
-                  {Object.entries(KIND_COLOR).map(([k, c]) => (
-                    <div key={k} className="flex items-center gap-2 text-zinc-400">
+                  {Object.entries(C.kind).map(([k, c]) => (
+                    <div key={k} className="flex items-center gap-2 text-tx-2">
                       <span className="size-2.5 rounded-full" style={{ background: c }} />
                       {KIND_LABEL[k]}
                     </div>
                   ))}
-                  <div className="flex items-center gap-2 text-zinc-400">
-                    <span className="size-2.5 rounded-full" style={{ background: ENTITY_COLOR }} />
+                  <div className="flex items-center gap-2 text-tx-2">
+                    <span className="size-2.5 rounded-full" style={{ background: C.entity }} />
                     entitas (ukuran = jumlah tautan)
                   </div>
                 </div>
-                <p className="mt-3 border-t border-white/[0.07] pt-2 text-[10px] leading-relaxed text-zinc-600">
+                <p className="mt-3 border-t border-line-soft pt-2 text-[10px] leading-relaxed text-tx-3">
                   Bulatan entri membesar mengikuti panjang isinya — konteks
                   lebih tebal, bulatan lebih besar.
                 </p>
-              </Glass>
+              </Panel>
 
-              <Glass className="p-5">
-                <h2 className="mb-3 flex items-center gap-1.5 text-sm font-medium text-zinc-300">
-                  <Flame className="size-3.5 text-amber-400" /> Entitas tersibuk
+              <Panel className="p-5">
+                <h2 className="mb-3 flex items-center gap-1.5 text-sm font-medium text-tx-2">
+                  <Flame className="size-3.5 text-warn" /> Entitas tersibuk
                 </h2>
                 <div className="space-y-1.5">
                   {topEntities.map(({ node, n }) => (
                     <button
                       key={node.id}
                       onClick={() => focusNode(node)}
-                      className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-left text-xs text-zinc-300 transition-colors hover:bg-white/[0.06]"
+                      className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-left text-xs text-tx-2 transition-colors hover:bg-sunken"
                     >
                       <span className="truncate">{node.label}</span>
-                      <span className="num shrink-0 text-zinc-500">{n}</span>
+                      <span className="num shrink-0 text-tx-3">{n}</span>
                     </button>
                   ))}
                 </div>
-              </Glass>
+              </Panel>
 
-              <Glass className="p-5">
+              <Panel className="p-5">
                 <div className="mb-3 flex items-center justify-between gap-2">
-                  <h2 className="text-sm font-medium text-zinc-300">
+                  <h2 className="text-sm font-medium text-tx-2">
                     {selected ? (selected.type === "entity" ? "Entitas" : "Entri") : "Klik sebuah node"}
                   </h2>
                   {selected && (
                     <button
                       onClick={() => setIsolate((v) => !v)}
                       className={cn(
-                        "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                        "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
                         isolate
-                          ? "border-sky-400/30 bg-sky-400/10 text-sky-300"
-                          : "border-white/10 bg-white/[0.04] text-zinc-400 hover:text-zinc-200"
+                          ? "bg-accent-tint text-accent-solid"
+                          : "raised text-tx-2 hover:text-tx-1"
                       )}
                     >
                       <Focus className="size-3" />
@@ -591,13 +643,13 @@ export default function GraphPage() {
                     {selected.type === "entity" ? (
                       <>
                         <div className="flex items-center gap-2">
-                          <span className="size-2.5 rounded-full" style={{ background: ENTITY_COLOR }} />
-                          <p className="font-medium text-zinc-100">{selected.label}</p>
+                          <span className="size-2.5 rounded-full" style={{ background: C.entity }} />
+                          <p className="font-medium text-tx-1">{selected.label}</p>
                         </div>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs text-tx-3">
                           disebut di {degree.get(selected.id) ?? 0} entri
                         </p>
-                        <div className="max-h-64 space-y-1 overflow-y-auto border-t border-white/[0.07] pt-2">
+                        <div className="max-h-64 space-y-1 overflow-y-auto border-t border-line-soft pt-2">
                           {(selected.entries ?? []).map((e) => (
                             <button
                               key={e.id}
@@ -605,7 +657,7 @@ export default function GraphPage() {
                                 const n = graphData.nodes.find((x) => x.id === e.id);
                                 if (n) focusNode(n);
                               }}
-                              className="block w-full rounded-xl px-2 py-1.5 text-left text-xs text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-200"
+                              className="block w-full rounded-xl px-2 py-1.5 text-left text-xs text-tx-2 transition-colors hover:bg-sunken hover:text-tx-1"
                             >
                               {e.label}
                             </button>
@@ -614,7 +666,7 @@ export default function GraphPage() {
                       </>
                     ) : (
                       <>
-                        <p className="leading-relaxed text-zinc-300">{selected.content}</p>
+                        <p className="leading-relaxed text-tx-2">{selected.content}</p>
                         <div className="flex flex-wrap gap-1.5">
                           <Pill tone={selected.kind === "active" ? "ok" : "idle"}>{selected.kind}</Pill>
                           <Pill tone="idle">{selected.scope}</Pill>
@@ -629,17 +681,17 @@ export default function GraphPage() {
                             </Pill>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 gap-2 border-t border-white/[0.07] pt-2 text-[11px] text-zinc-500">
-                          <div>dibuat<div className="text-zinc-300">{fmtDate(selected.createdAt)}</div></div>
-                          <div>diperbarui<div className="text-zinc-300">{fmtDate(selected.updatedAt)}</div></div>
+                        <div className="grid grid-cols-2 gap-2 border-t border-line-soft pt-2 text-[11px] text-tx-3">
+                          <div>dibuat<div className="text-tx-2">{fmtDate(selected.createdAt)}</div></div>
+                          <div>diperbarui<div className="text-tx-2">{fmtDate(selected.updatedAt)}</div></div>
                         </div>
                         {selectedEntities.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 border-t border-white/[0.07] pt-2">
+                          <div className="flex flex-wrap gap-1.5 border-t border-line-soft pt-2">
                             {selectedEntities.map((n) => (
                               <button
                                 key={n.id}
                                 onClick={() => focusNode(n)}
-                                className="rounded-full border border-violet-400/25 bg-violet-400/10 px-2 py-0.5 text-[11px] text-violet-300 hover:bg-violet-400/20"
+                                className="rounded-full bg-accent-tint px-2 py-0.5 text-[11px] text-entity transition-opacity hover:opacity-80"
                               >
                                 {n.label}
                               </button>
@@ -647,8 +699,8 @@ export default function GraphPage() {
                           </div>
                         )}
                         {relatedEntries.length > 0 && (
-                          <div className="border-t border-white/[0.07] pt-2">
-                            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-zinc-500">
+                          <div className="border-t border-line-soft pt-2">
+                            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-tx-3">
                               <Link2 className="size-3" /> Terkait
                             </h3>
                             <div className="space-y-1">
@@ -656,10 +708,10 @@ export default function GraphPage() {
                                 <button
                                   key={node.id}
                                   onClick={() => focusNode(node)}
-                                  className="flex w-full items-start gap-2 rounded-xl px-2 py-1.5 text-left text-xs text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-200"
+                                  className="flex w-full items-start gap-2 rounded-xl px-2 py-1.5 text-left text-xs text-tx-2 transition-colors hover:bg-sunken hover:text-tx-1"
                                 >
                                   <span className="line-clamp-2 flex-1">{node.label}</span>
-                                  <span className="num shrink-0 text-zinc-600">{n} bareng</span>
+                                  <span className="num shrink-0 text-tx-3">{n} bareng</span>
                                 </button>
                               ))}
                             </div>
@@ -669,13 +721,13 @@ export default function GraphPage() {
                     )}
                   </div>
                 ) : (
-                  <p className="text-xs text-zinc-600">
+                  <p className="text-xs text-tx-3">
                     Detail entri atau entitas muncul di sini.
                   </p>
                 )}
-              </Glass>
+              </Panel>
 
-              <p className="px-1 text-[11px] leading-relaxed text-zinc-600">
+              <p className="px-1 text-[11px] leading-relaxed text-tx-3">
                 Tarik untuk geser node, scroll untuk zoom. Klik sebuah node
                 buat buka popup ringkas &amp; menyalakan semua garis yang
                 terhubung ke dia — klik area kosong buat matiin.

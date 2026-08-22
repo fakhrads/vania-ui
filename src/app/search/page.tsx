@@ -1,27 +1,76 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
 import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Panel, KIND_CLASS } from "@/components/monitor";
+import { cn } from "@/lib/utils";
 import { Search, Loader2, Inbox, Eye, Brain } from "lucide-react";
 
+type Hit = {
+  id: number;
+  preview: string;
+  created_at: string;
+  kind?: string;
+  provenance?: string;
+  confidence?: number;
+};
+
 interface SearchResults {
-  inbox: any[];
-  observations: any[];
-  ltm: any[];
+  inbox: Hit[];
+  observations: Hit[];
+  ltm: Hit[];
   total: number;
 }
 
+/** Satu kolom hasil. Tiga sumber dirender identik supaya bisa dibandingkan. */
+function Column({
+  title,
+  icon: Icon,
+  hits,
+  render,
+}: {
+  title: string;
+  icon: typeof Inbox;
+  hits: Hit[];
+  render?: (h: Hit) => React.ReactNode;
+}) {
+  return (
+    <Panel className="p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <Icon className="size-4 text-tx-3" />
+          <h2 className="text-[13px] font-semibold text-tx-1">{title}</h2>
+        </div>
+        <span className="well num rounded-full px-2.5 py-0.5 text-[10.5px] text-tx-2">
+          {hits.length}
+        </span>
+      </div>
+      <div className="space-y-2">
+        {hits.length ? (
+          hits.map((h, i) => (
+            <div key={i} className="well rounded-xl p-3.5">
+              <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                {render?.(h)}
+                <span className="num ml-auto text-[10px] text-tx-3">
+                  {new Date(h.created_at).toLocaleDateString("id-ID")}
+                </span>
+              </div>
+              <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-tx-2">
+                {h.preview}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p className="py-4 text-center text-xs text-tx-3">Tidak ada hasil.</p>
+        )}
+      </div>
+    </Panel>
+  );
+}
+
 export default function SearchPage() {
-  const { token, loading: authLoading } = useAuth();
-  const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
@@ -46,122 +95,87 @@ export default function SearchPage() {
 
   return (
     <Guard>
-    <div className="flex flex-col h-screen overflow-hidden lg:flex-row">
-      <div className="mesh-bg" />
+    <div className="flex min-h-screen flex-col lg:flex-row">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold">Semantic Search</h1>
-            <p className="text-sm text-zinc-500 mt-1">Cari di semua tabel: inbox, observations, LTM</p>
-          </div>
+      <main className="flex-1 overflow-y-auto px-6 py-8 lg:px-10">
+        <header className="mb-6">
+          <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">Cari</h1>
+          <p className="mt-1 text-sm text-tx-3">
+            Pencarian teks lintas korpus, inbox, dan observasi
+          </p>
+        </header>
 
-          <div className="flex gap-2">
-            <Input
-              placeholder="Tulis pertanyaan..."
+        <div className="mb-7 flex gap-3">
+          <div className="well flex flex-1 items-center gap-3 rounded-2xl px-5 py-3.5">
+            <Search className="size-[18px] shrink-0 text-tx-3" />
+            <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="flex-1 glass border-white/[0.07] text-base"
+              placeholder="Tulis kata kunci lalu tekan Enter…"
+              className="w-full bg-transparent text-[15px] text-tx-1 outline-none placeholder:text-tx-3"
+              autoFocus
             />
-            <Button onClick={handleSearch} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-            </Button>
           </div>
-
-          {results && (
-            <div className="space-y-6">
-              <p className="text-sm text-zinc-500">{results.total} hasil ditemukan</p>
-
-              {/* Inbox Results */}
-              {results.inbox.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Inbox className="h-4 w-4 text-blue-400" />
-                    <h2 className="text-sm font-medium text-zinc-400">Inbox ({results.inbox.length})</h2>
-                  </div>
-                  <div className="space-y-2">
-                    {results.inbox.map((r, i) => (
-                      <Card key={`inbox-${i}`} className="glass border-white/[0.07]">
-                        <CardContent className="p-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge className="bg-blue-950 text-blue-400 text-xs">inbox</Badge>
-                            <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-xs">{r.source}</Badge>
-                            <span className="text-xs text-zinc-600">{new Date(r.created_at).toLocaleDateString("id-ID")}</span>
-                          </div>
-                          <p className="text-sm text-zinc-300 whitespace-pre-wrap">{r.preview}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Observations Results */}
-              {results.observations.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Eye className="h-4 w-4 text-purple-400" />
-                    <h2 className="text-sm font-medium text-zinc-400">Observations ({results.observations.length})</h2>
-                  </div>
-                  <div className="space-y-2">
-                    {results.observations.map((r, i) => (
-                      <Card key={`obs-${i}`} className="glass border-white/[0.07]">
-                        <CardContent className="p-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge className="bg-purple-950 text-purple-400 text-xs">observations</Badge>
-                            <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-xs">{r.source}</Badge>
-                            {r.confidence && <Badge variant="secondary" className="bg-zinc-800 text-zinc-500 text-xs">conf: {r.confidence.toFixed(2)}</Badge>}
-                            <span className="text-xs text-zinc-600">{new Date(r.created_at).toLocaleDateString("id-ID")}</span>
-                          </div>
-                          <p className="text-sm text-zinc-300 whitespace-pre-wrap">{r.preview}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* LTM Results */}
-              {results.ltm.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Brain className="h-4 w-4 text-amber-400" />
-                    <h2 className="text-sm font-medium text-zinc-400">LTM ({results.ltm.length})</h2>
-                  </div>
-                  <div className="space-y-2">
-                    {results.ltm.map((r, i) => (
-                      <Card key={`ltm-${i}`} className="glass border-white/[0.07]">
-                        <CardContent className="p-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge className="bg-amber-950 text-amber-400 text-xs">ltm</Badge>
-                            <Badge variant="secondary" className="bg-zinc-800 text-zinc-400 text-xs">{r.kind}</Badge>
-                            <Badge variant="secondary" className="bg-zinc-800 text-zinc-500 text-xs">{r.provenance}</Badge>
-                            <span className="text-xs text-zinc-600">{new Date(r.created_at).toLocaleDateString("id-ID")}</span>
-                          </div>
-                          <p className="text-sm text-zinc-300 whitespace-pre-wrap">{r.preview}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {results.total === 0 && (
-                <div className="text-center py-12 text-zinc-600">
-                  Tidak ada hasil untuk &quot;{query}&quot;
-                </div>
-              )}
-            </div>
-          )}
-
-          {!results && (
-            <div className="text-center py-12 text-zinc-700">
-              <Search className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Ketik pertanyaan lalu tekan Enter</p>
-            </div>
-          )}
+          <button
+            onClick={handleSearch}
+            disabled={loading}
+            className="raised-2 rounded-2xl px-7 text-sm font-medium text-tx-1 disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="size-4 animate-spin" /> : "Cari"}
+          </button>
         </div>
+
+        {results ? (
+          <>
+            <p className="mb-4 text-[12.5px] text-tx-3">
+              <span className="num text-tx-1">{results.total}</span> hasil untuk{" "}
+              <span className="num text-tx-1">{query}</span>
+            </p>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Column
+                title="Korpus"
+                icon={Brain}
+                hits={results.ltm}
+                render={(h) => (
+                  <>
+                    {h.kind && (
+                      <span className={cn("num rounded-full px-2 py-0.5 text-[10px]", KIND_CLASS[h.kind])}>
+                        {h.kind}
+                      </span>
+                    )}
+                    {h.provenance && (
+                      <span className="num text-[10px] text-tx-3">{h.provenance}</span>
+                    )}
+                  </>
+                )}
+              />
+              <Column title="Inbox" icon={Inbox} hits={results.inbox} />
+              <Column
+                title="Observasi"
+                icon={Eye}
+                hits={results.observations}
+                render={(h) => (
+                  <>
+                    {h.kind && (
+                      <span className="num rounded-full bg-idle-tint px-2 py-0.5 text-[10px] text-tx-2">
+                        {h.kind}
+                      </span>
+                    )}
+                    {h.confidence != null && (
+                      <span className="num text-[10px] text-tx-3">conf {h.confidence.toFixed(2)}</span>
+                    )}
+                  </>
+                )}
+              />
+            </div>
+          </>
+        ) : (
+          <Panel className="flex flex-col items-center gap-3 p-14 text-center">
+            <Search className="size-9 text-tx-3 opacity-40" />
+            <p className="text-sm text-tx-3">Ketik kata kunci lalu tekan Enter.</p>
+          </Panel>
+        )}
       </main>
     </div>
     </Guard>

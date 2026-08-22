@@ -1,0 +1,318 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: oklch(.720 .130 274); text-decoration: none; }
+    a:hover { color: oklch(.962 .004 264); }
+    .num { font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  </style>
+</helmet>
+<div style="{{css}}">
+<div style="display: flex; min-height: 920px; background: var(--bg); color: var(--tx1); font-size: 14px">
+  <aside style="width: 248px; flex-shrink: 0; padding: 14px">
+    <div style="display: flex; flex-direction: column; gap: 4px; height: 100%; padding: 14px; border: 1px solid var(--line); border-radius: 20px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+
+      <div style="display: flex; align-items: center; gap: 11px; padding: 6px 4px 14px">
+        <div style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 12px; background: var(--surf2); border: 1px solid var(--line); box-shadow: var(--sh1), var(--inset); color: var(--accent)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 6 17a3 3 0 0 0 3.5 3V3Z"></path><path d="M14.5 3a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2A3 3 0 0 1 18 17a3 3 0 0 1-3.5 3V3Z"></path></svg>
+        </div>
+        <div style="min-width: 0">
+          <p style="margin: 0; font-size: 13px; font-weight: 600; color: var(--tx1); letter-spacing: -.01em">Fakhri's Agentic Memory</p>
+          <p style="margin: 2px 0 0; font-size: 10.5px; color: var(--tx3)">panel pemantauan</p>
+        </div>
+      </div>
+
+      <nav style="display: flex; flex-direction: column; gap: 3px">
+        <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; color: var(--tx2); border: 1px solid transparent">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"></path></svg>
+          Kesehatan
+        </a>
+        <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; color: var(--tx2); border: 1px solid transparent">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 6 17a3 3 0 0 0 3.5 3V3Z"></path><path d="M14.5 3a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2A3 3 0 0 1 18 17a3 3 0 0 1-3.5 3V3Z"></path></svg>
+          Korpus
+        </a>
+        <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; font-weight: 500; color: var(--tx1); background: var(--surf2); border: 1px solid var(--line); box-shadow: var(--sh1), var(--inset)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="m8.6 13.5 6.8 4"></path><path d="m15.4 6.5-6.8 4"></path></svg>
+          Graph
+        </a>
+        <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; color: var(--tx2); border: 1px solid transparent">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M9 12h6"></path><path d="M9 16h6"></path></svg>
+          Audit
+        </a>
+        <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; color: var(--tx2); border: 1px solid transparent">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.9-3.9"></path></svg>
+          Cari
+        </a>
+        <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; color: var(--tx2); border: 1px solid transparent">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m2 7 10 6 10-6"></path></svg>
+          Inbox
+        </a>
+        <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; color: var(--tx2); border: 1px solid transparent">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          Observasi
+        </a>
+      </nav>
+
+      <div style="flex-grow: 1"></div>
+
+      <div style="display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--sunken); box-shadow: var(--sunk); margin-bottom: 10px">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; flex-grow: 1; padding: 7px; border-radius: 10px; font-size: 12px; color: var(--tx3)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+          Terang
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; flex-grow: 1; padding: 7px; border-radius: 10px; font-size: 12px; font-weight: 500; color: var(--tx1); background: var(--surf2); border: 1px solid var(--line); box-shadow: var(--sh1), var(--inset)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"></path></svg>
+          Gelap
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--line-soft)">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: var(--ok-bg); font-size: 11.5px; color: var(--ok)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-4"></path></svg>
+          Baca-saja
+        </div>
+        <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; color: var(--tx3)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path></svg>
+          Keluar
+        </a>
+      </div>
+    </div>
+  </aside>
+  <main style="flex-grow: 1; padding: 32px 40px 40px 26px; min-width: 0">
+
+    <header style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px">
+      <div>
+        <h1 style="margin: 0; font-size: 25px; font-weight: 600; letter-spacing: -.025em; color: var(--tx1)">Graph</h1>
+        <p style="margin: 5px 0 0; font-size: 13.5px; color: var(--tx3)">231 entri · 21 entitas · 408 tautan</p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 9px; width: 230px; padding: 9px 14px; border-radius: 14px; background: var(--sunken); box-shadow: var(--sunk); font-size: 12.5px; color: var(--tx3)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.9-3.9"></path></svg>
+          Cari node…
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; padding: 9px 15px; border-radius: 14px; background: var(--surf2); border: 1px solid var(--line); box-shadow: var(--sh1), var(--inset); font-size: 12.5px; color: var(--tx1)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 3v6h-6"></path></svg>
+          Muat ulang
+        </div>
+      </div>
+    </header>
+
+    <div style="display: flex; gap: 16px">
+
+      <div style="flex-grow: 1; border: 1px solid var(--line); border-radius: 18px; background: var(--sunken); box-shadow: var(--sunk); overflow: hidden; position: relative">
+        <svg viewBox="0 0 880 560" style="display: block; width: 100%; height: 560px">
+      <line x1="389" y1="250" x2="300" y2="250" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="367" y1="334" x2="300" y2="250" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="277" y1="349" x2="300" y2="250" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="203" y1="297" x2="300" y2="250" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="203" y1="203" x2="300" y2="250" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="286" y1="188" x2="300" y2="250" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="365" y1="168" x2="300" y2="250" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="614" y1="223" x2="585" y2="165" stroke="var(--tx1)" stroke-width="1.3" opacity="0.55"></line>
+      <line x1="535" y1="215" x2="585" y2="165" stroke="var(--tx1)" stroke-width="1.3" opacity="0.55"></line>
+      <line x1="497" y1="120" x2="585" y2="165" stroke="var(--tx1)" stroke-width="1.3" opacity="0.55"></line>
+      <line x1="600" y1="71" x2="585" y2="165" stroke="var(--tx1)" stroke-width="1.3" opacity="0.55"></line>
+      <line x1="683" y1="149" x2="585" y2="165" stroke="var(--tx1)" stroke-width="1.3" opacity="0.55"></line>
+      <line x1="138" y1="456" x2="175" y2="405" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="100" y1="351" x2="175" y2="405" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="233" y1="325" x2="175" y2="405" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="246" y1="457" x2="175" y2="405" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="553" y1="386" x2="640" y2="400" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="703" y1="322" x2="640" y2="400" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="674" y1="489" x2="640" y2="400" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="398" y1="371" x2="425" y2="455" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="510" y1="428" x2="425" y2="455" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="448" y1="527" x2="425" y2="455" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="332" y1="485" x2="425" y2="455" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="817" y1="39" x2="745" y2="110" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="772" y1="211" x2="745" y2="110" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="668" y1="89" x2="745" y2="110" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="199" y1="173" x2="130" y2="150" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="84" y1="191" x2="130" y2="150" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <line x1="110" y1="55" x2="130" y2="150" stroke="var(--line)" stroke-width="0.9" opacity="0.5"></line>
+      <circle cx="389" cy="250" r="4.5" fill="var(--active)" opacity="0.72"></circle>
+      <circle cx="367" cy="334" r="5.8" fill="var(--evicted)" opacity="0.72"></circle>
+      <circle cx="277" cy="349" r="6.7" fill="var(--seed)" opacity="0.72"></circle>
+      <circle cx="203" cy="297" r="4.2" fill="var(--seed)" opacity="0.72"></circle>
+      <circle cx="203" cy="203" r="3.6" fill="var(--active)" opacity="0.72"></circle>
+      <circle cx="286" cy="188" r="3.7" fill="var(--evicted)" opacity="0.72"></circle>
+      <circle cx="365" cy="168" r="6.3" fill="var(--evicted)" opacity="0.72"></circle>
+      <circle cx="614" cy="223" r="5.6" fill="var(--seed)" opacity="1"></circle>
+      <circle cx="535" cy="215" r="6.6" fill="var(--seed)" opacity="1"></circle>
+      <circle cx="497" cy="120" r="3.9" fill="var(--seed)" opacity="1"></circle>
+      <circle cx="600" cy="71" r="6.1" fill="var(--archive)" opacity="1"></circle>
+      <circle cx="683" cy="149" r="6.4" fill="var(--evicted)" opacity="1"></circle>
+      <circle cx="138" cy="456" r="4.6" fill="var(--seed)" opacity="0.72"></circle>
+      <circle cx="100" cy="351" r="4.8" fill="var(--active)" opacity="0.72"></circle>
+      <circle cx="233" cy="325" r="4.5" fill="var(--archive)" opacity="0.72"></circle>
+      <circle cx="246" cy="457" r="4.1" fill="var(--active)" opacity="0.72"></circle>
+      <circle cx="553" cy="386" r="4.9" fill="var(--seed)" opacity="0.72"></circle>
+      <circle cx="703" cy="322" r="5.6" fill="var(--active)" opacity="0.72"></circle>
+      <circle cx="674" cy="489" r="5.5" fill="var(--active)" opacity="0.72"></circle>
+      <circle cx="398" cy="371" r="4.3" fill="var(--seed)" opacity="0.72"></circle>
+      <circle cx="510" cy="428" r="5.3" fill="var(--active)" opacity="0.72"></circle>
+      <circle cx="448" cy="527" r="5.0" fill="var(--seed)" opacity="0.72"></circle>
+      <circle cx="332" cy="485" r="4.1" fill="var(--seed)" opacity="0.72"></circle>
+      <circle cx="817" cy="39" r="5.6" fill="var(--active)" opacity="0.72"></circle>
+      <circle cx="772" cy="211" r="4.3" fill="var(--active)" opacity="0.72"></circle>
+      <circle cx="668" cy="89" r="5.7" fill="var(--evicted)" opacity="0.72"></circle>
+      <circle cx="199" cy="173" r="4.1" fill="var(--active)" opacity="0.72"></circle>
+      <circle cx="84" cy="191" r="4.4" fill="var(--archive)" opacity="0.72"></circle>
+      <circle cx="110" cy="55" r="5.0" fill="var(--active)" opacity="0.72"></circle>
+      <circle cx="300" cy="250" r="22" fill="var(--entity)" opacity="0.13"></circle>
+      <circle cx="300" cy="250" r="15" fill="var(--entity)"></circle>
+      <text x="300" y="281" text-anchor="middle" font-family="'IBM Plex Sans', sans-serif" font-size="12" font-weight="500" fill="var(--tx1)">Fakhri</text>
+      <circle cx="585" cy="165" r="19" fill="var(--entity)" opacity="0.13"></circle>
+      <circle cx="585" cy="165" r="12" fill="var(--entity)" stroke="var(--tx1)" stroke-width="2"></circle>
+      <text x="585" y="193" text-anchor="middle" font-family="'IBM Plex Sans', sans-serif" font-size="12" font-weight="600" fill="var(--tx1)">Abiane</text>
+      <circle cx="175" cy="405" r="18" fill="var(--entity)" opacity="0.13"></circle>
+      <circle cx="175" cy="405" r="11" fill="var(--entity)"></circle>
+      <text x="175" y="432" text-anchor="middle" font-family="'IBM Plex Sans', sans-serif" font-size="12" font-weight="500" fill="var(--tx1)">FakhriPOS</text>
+      <circle cx="640" cy="400" r="16" fill="var(--entity)" opacity="0.13"></circle>
+      <circle cx="640" cy="400" r="9" fill="var(--entity)"></circle>
+      <text x="640" y="425" text-anchor="middle" font-family="'IBM Plex Sans', sans-serif" font-size="12" font-weight="500" fill="var(--tx1)">Dokploy</text>
+      <circle cx="425" cy="455" r="17" fill="var(--entity)" opacity="0.13"></circle>
+      <circle cx="425" cy="455" r="10" fill="var(--entity)"></circle>
+      <text x="425" y="481" text-anchor="middle" font-family="'IBM Plex Sans', sans-serif" font-size="12" font-weight="500" fill="var(--tx1)">Vania UI</text>
+      <circle cx="745" cy="110" r="15" fill="var(--entity)" opacity="0.13"></circle>
+      <circle cx="745" cy="110" r="8" fill="var(--entity)"></circle>
+      <text x="745" y="134" text-anchor="middle" font-family="'IBM Plex Sans', sans-serif" font-size="12" font-weight="500" fill="var(--tx1)">Joss Way-ar</text>
+      <circle cx="130" cy="150" r="15" fill="var(--entity)" opacity="0.13"></circle>
+      <circle cx="130" cy="150" r="8" fill="var(--entity)"></circle>
+      <text x="130" y="174" text-anchor="middle" font-family="'IBM Plex Sans', sans-serif" font-size="12" font-weight="500" fill="var(--tx1)">NixOS</text>
+        </svg>
+
+        <div style="position: absolute; left: 16px; bottom: 16px; display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-radius: 14px; background: var(--surf1); border: 1px solid var(--line); box-shadow: var(--sh2), var(--inset); font-size: 11px; color: var(--tx2)">
+          <span style="display: flex; align-items: center; gap: 6px"><span style="width: 9px; height: 9px; border-radius: 999px; background: var(--seed)"></span> seed</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span style="width: 9px; height: 9px; border-radius: 999px; background: var(--active)"></span> active</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span style="width: 9px; height: 9px; border-radius: 999px; background: var(--evicted)"></span> evicted</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span style="width: 9px; height: 9px; border-radius: 999px; background: var(--archive)"></span> archive</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span style="width: 11px; height: 11px; border-radius: 999px; background: var(--entity)"></span> entitas</span>
+        </div>
+      </div>
+
+      <div style="width: 322px; flex-shrink: 0; padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: var(--surf1); box-shadow: var(--sh2), var(--inset); height: fit-content">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px">
+          <span style="width: 12px; height: 12px; border-radius: 999px; background: var(--entity)"></span>
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.02em; color: var(--tx1)">Abiane</h2>
+        </div>
+        <p style="margin: 0 0 18px; font-size: 11.5px; color: var(--tx3)">entitas · 5 entri terkait</p>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 20px">
+          <div style="display: flex; align-items: center; gap: 7px; padding: 8px 13px; border-radius: 12px; background: var(--surf2); border: 1px solid var(--line); box-shadow: var(--sh1), var(--inset); font-size: 12px; color: var(--tx1)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path></svg>
+            Fokus
+          </div>
+          <div style="display: flex; align-items: center; gap: 7px; padding: 8px 13px; border-radius: 12px; font-size: 12px; color: var(--tx3); background: var(--sunken); box-shadow: var(--sunk)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"></path><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"></path></svg>
+            Tautan
+          </div>
+        </div>
+
+        <h3 style="margin: 0 0 12px; font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">Entri terkait</h3>
+        <div style="display: flex; flex-direction: column; gap: 7px">
+          <div style="padding: 11px 13px; border-radius: 12px; background: var(--surf2); border: 1px solid var(--line); box-shadow: var(--sh1), var(--inset)">
+            <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 5px">
+              <span style="width: 7px; height: 7px; border-radius: 999px; background: var(--seed)"></span>
+              <span class="num" style="font-size: 10px; color: var(--tx3)">seed · abiane</span>
+            </div>
+            <p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--tx1)">Abiane itu pacar Fakhri, LDR. Panggil dia Abiane, bukan Alvina.</p>
+          </div>
+          <div style="padding: 11px 13px; border-radius: 12px; background: var(--sunken); box-shadow: var(--sunk)">
+            <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 5px">
+              <span style="width: 7px; height: 7px; border-radius: 999px; background: var(--seed)"></span>
+              <span class="num" style="font-size: 10px; color: var(--tx3)">seed · abiane</span>
+            </div>
+            <p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--tx2)">Abiane fans Joss Way-ar, aktor GMMTV Thailand.</p>
+          </div>
+          <div style="padding: 11px 13px; border-radius: 12px; background: var(--sunken); box-shadow: var(--sunk)">
+            <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 5px">
+              <span style="width: 7px; height: 7px; border-radius: 999px; background: var(--active)"></span>
+              <span class="num" style="font-size: 10px; color: var(--tx3)">active · abiane</span>
+            </div>
+            <p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--tx2)">Media buat Abiane disimpen di ~/.hermes/media/abiane/.</p>
+          </div>
+          <div style="padding: 11px 13px; border-radius: 12px; background: var(--sunken); box-shadow: var(--sunk)">
+            <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 5px">
+              <span style="width: 7px; height: 7px; border-radius: 999px; background: var(--active)"></span>
+              <span class="num" style="font-size: 10px; color: var(--tx3)">active · abiane</span>
+            </div>
+            <p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--tx2)">VN ke Abiane: gaya temen, netral, nggak manja.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Spesifikasi warna canvas -->
+    <div style="margin-top: 16px; padding: 20px 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+      <h2 style="margin: 0 0 4px; font-size: 13.5px; font-weight: 600; color: var(--tx1)">Warna canvas — nilai harfiah</h2>
+      <p style="margin: 0 0 16px; font-size: 11.5px; color: var(--tx3)">Graph digambar di canvas 2D; canvas tidak bisa baca CSS variable. Nilai ini harus ditulis langsung di <span class="num">graph/page.tsx</span> sebagai dua set.</p>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+
+        <div>
+          <div style="margin-bottom: 10px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">Gelap</div>
+          <div style="display: flex; flex-direction: column; gap: 5px">
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #16181f; border: 1px solid var(--line)"></span><span style="flex-grow: 1; color: var(--tx2)">latar canvas</span><span class="num" style="color: var(--tx1)">#16181f</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #5aa9f8"></span><span style="flex-grow: 1; color: var(--tx2)">node seed</span><span class="num" style="color: var(--tx1)">#5aa9f8</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #3ad39b"></span><span style="flex-grow: 1; color: var(--tx2)">node active</span><span class="num" style="color: var(--tx1)">#3ad39b</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #f0b74a"></span><span style="flex-grow: 1; color: var(--tx2)">node evicted</span><span class="num" style="color: var(--tx1)">#f0b74a</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #8b8f9c"></span><span style="flex-grow: 1; color: var(--tx2)">node archive</span><span class="num" style="color: var(--tx1)">#8b8f9c</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #b98cf5"></span><span style="flex-grow: 1; color: var(--tx2)">node entitas</span><span class="num" style="color: var(--tx1)">#b98cf5</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #dfe2ea"></span><span style="flex-grow: 1; color: var(--tx2)">teks label</span><span class="num" style="color: var(--tx1)">#dfe2ea</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #121a1a; border: 1px solid var(--line)"></span><span style="flex-grow: 1; color: var(--tx2)">latar pil label</span><span class="num" style="color: var(--tx1)">rgba(18,20,26,.78)</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #2b2e37"></span><span style="flex-grow: 1; color: var(--tx2)">garis biasa</span><span class="num" style="color: var(--tx1)">rgba(255,255,255,.10)</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #d9dbe2"></span><span style="flex-grow: 1; color: var(--tx2)">garis tersorot</span><span class="num" style="color: var(--tx1)">rgba(255,255,255,.85)</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #1b1d24"></span><span style="flex-grow: 1; color: var(--tx2)">garis teredam</span><span class="num" style="color: var(--tx1)">rgba(255,255,255,.03)</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #ffffff"></span><span style="flex-grow: 1; color: var(--tx2)">ring terpilih</span><span class="num" style="color: var(--tx1)">#ffffff</span></div>
+          </div>
+        </div>
+
+        <div>
+          <div style="margin-bottom: 10px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--tx3)">Terang</div>
+          <div style="display: flex; flex-direction: column; gap: 5px">
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #ffffff; border: 1px solid var(--line)"></span><span style="flex-grow: 1; color: var(--tx2)">latar canvas</span><span class="num" style="color: var(--tx1)">#ffffff</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #1f6fd0"></span><span style="flex-grow: 1; color: var(--tx2)">node seed</span><span class="num" style="color: var(--tx1)">#1f6fd0</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #16855c"></span><span style="flex-grow: 1; color: var(--tx2)">node active</span><span class="num" style="color: var(--tx1)">#16855c</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #a86a06"></span><span style="flex-grow: 1; color: var(--tx2)">node evicted</span><span class="num" style="color: var(--tx1)">#a86a06</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #6b7080"></span><span style="flex-grow: 1; color: var(--tx2)">node archive</span><span class="num" style="color: var(--tx1)">#6b7080</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #7b3fd4"></span><span style="flex-grow: 1; color: var(--tx2)">node entitas</span><span class="num" style="color: var(--tx1)">#7b3fd4</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #2a2f3d"></span><span style="flex-grow: 1; color: var(--tx2)">teks label</span><span class="num" style="color: var(--tx1)">#2a2f3d</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #fafafa; border: 1px solid var(--line)"></span><span style="flex-grow: 1; color: var(--tx2)">latar pil label</span><span class="num" style="color: var(--tx1)">rgba(255,255,255,.86)</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #dcdee5"></span><span style="flex-grow: 1; color: var(--tx2)">garis biasa</span><span class="num" style="color: var(--tx1)">rgba(20,24,40,.14)</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #4b4f5e"></span><span style="flex-grow: 1; color: var(--tx2)">garis tersorot</span><span class="num" style="color: var(--tx1)">rgba(20,24,40,.75)</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #f4f5f7"></span><span style="flex-grow: 1; color: var(--tx2)">garis teredam</span><span class="num" style="color: var(--tx1)">rgba(20,24,40,.04)</span></div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 11.5px"><span style="width: 15px; height: 15px; border-radius: 5px; background: #14182a"></span><span style="flex-grow: 1; color: var(--tx2)">ring terpilih</span><span class="num" style="color: var(--tx1)">#14182a</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"tema":{"editor":"enum","options":["gelap","terang"],"default":"gelap"},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  themes() {
+    return {
+      gelap: "--bg:oklch(.168 .008 264);--sunken:oklch(.142 .008 264);--surf1:oklch(.222 .009 264);--surf2:oklch(.262 .010 264);--surf3:oklch(.305 .011 264);--line:oklch(.318 .012 264);--line-soft:oklch(.262 .010 264);--tx1:oklch(.962 .004 264);--tx2:oklch(.780 .008 264);--tx3:oklch(.620 .010 264);--accent:oklch(.720 .130 274);--accent-bg:oklch(.300 .060 274);--ok:oklch(.780 .140 158);--ok-bg:oklch(.290 .055 158);--warn:oklch(.830 .130 78);--warn-bg:oklch(.300 .050 78);--bad:oklch(.720 .160 18);--bad-bg:oklch(.300 .065 18);--idle:oklch(.620 .010 264);--idle-bg:oklch(.270 .008 264);--seed:oklch(.750 .130 240);--active:oklch(.780 .140 158);--evicted:oklch(.830 .130 78);--archive:oklch(.620 .010 264);--entity:oklch(.740 .130 300);--read:oklch(.720 .130 250);--write:oklch(.700 .140 300);--sh1:0 1px 2px rgba(0,0,0,.45),0 6px 18px -10px rgba(0,0,0,.8);--sh2:0 2px 4px rgba(0,0,0,.5),0 14px 32px -14px rgba(0,0,0,.85);--sh3:0 8px 14px rgba(0,0,0,.5),0 28px 56px -20px rgba(0,0,0,.9);--inset:inset 0 1px 0 rgba(255,255,255,.055);--sunk:inset 0 2px 4px rgba(0,0,0,.45)",
+      terang: "--bg:oklch(.951 .004 264);--sunken:oklch(.922 .005 264);--surf1:oklch(1 0 0);--surf2:oklch(1 0 0);--surf3:oklch(1 0 0);--line:oklch(.905 .006 264);--line-soft:oklch(.935 .005 264);--tx1:oklch(.260 .014 264);--tx2:oklch(.460 .012 264);--tx3:oklch(.600 .010 264);--accent:oklch(.550 .160 274);--accent-bg:oklch(.945 .040 274);--ok:oklch(.550 .140 158);--ok-bg:oklch(.945 .045 158);--warn:oklch(.600 .130 70);--warn-bg:oklch(.950 .050 78);--bad:oklch(.550 .190 22);--bad-bg:oklch(.950 .045 20);--idle:oklch(.600 .010 264);--idle-bg:oklch(.945 .004 264);--seed:oklch(.550 .140 240);--active:oklch(.550 .140 158);--evicted:oklch(.600 .130 70);--archive:oklch(.600 .010 264);--entity:oklch(.550 .160 300);--read:oklch(.550 .150 250);--write:oklch(.520 .170 300);--sh1:0 1px 2px rgba(17,20,34,.06),0 4px 12px -6px rgba(17,20,34,.10);--sh2:0 2px 4px rgba(17,20,34,.07),0 12px 24px -10px rgba(17,20,34,.14);--sh3:0 6px 10px rgba(17,20,34,.08),0 24px 48px -16px rgba(17,20,34,.20);--inset:inset 0 1px 0 rgba(255,255,255,.9);--sunk:inset 0 2px 4px rgba(17,20,34,.09)"
+    };
+  }
+  renderVals() {
+    const t = this.themes();
+    return { css: t[this.props.tema] || t.gelap };
+  }
+}
+</script>
+</body>
+</html>

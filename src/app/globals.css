@@ -4,12 +4,51 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Token soft-depth ────────────────────────────────────────────────────
+   Dipetakan ke utilitas Tailwind lewat @theme inline, jadi kelas seperti
+   bg-surf-1 / text-tx-2 / border-line / shadow-e2 tersedia langsung.       */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-mono);
   --font-heading: var(--font-sans);
+
+  --color-bg: var(--bg);
+  --color-sunken: var(--sunken);
+  --color-surf-1: var(--surf1);
+  --color-surf-2: var(--surf2);
+  --color-surf-3: var(--surf3);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-tx-1: var(--tx1);
+  --color-tx-2: var(--tx2);
+  --color-tx-3: var(--tx3);
+
+  --color-accent-solid: var(--accent-solid);
+  --color-accent-tint: var(--accent-tint);
+  --color-ok: var(--ok);
+  --color-ok-tint: var(--ok-tint);
+  --color-warn: var(--warn);
+  --color-warn-tint: var(--warn-tint);
+  --color-bad: var(--bad);
+  --color-bad-tint: var(--bad-tint);
+  --color-idle: var(--idle);
+  --color-idle-tint: var(--idle-tint);
+
+  --color-seed: var(--seed);
+  --color-active: var(--active);
+  --color-evicted: var(--evicted);
+  --color-archive: var(--archive);
+  --color-entity: var(--entity);
+  --color-read: var(--read);
+  --color-write: var(--write);
+
+  --shadow-e1: var(--sh1);
+  --shadow-e2: var(--sh2);
+  --shadow-e3: var(--sh3);
+  --shadow-sunk: var(--sunk);
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,73 +87,150 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Terang — elevasi dibawa bayangan; permukaan tetap putih. */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  --bg: oklch(0.951 0.004 264);
+  --sunken: oklch(0.922 0.005 264);
+  --surf1: oklch(1 0 0);
+  --surf2: oklch(1 0 0);
+  --surf3: oklch(1 0 0);
+  --line: oklch(0.905 0.006 264);
+  --line-soft: oklch(0.935 0.005 264);
+  --tx1: oklch(0.260 0.014 264);
+  --tx2: oklch(0.460 0.012 264);
+  --tx3: oklch(0.600 0.010 264);
+
+  --accent-solid: oklch(0.550 0.160 274);
+  --accent-tint: oklch(0.945 0.040 274);
+  --ok: oklch(0.550 0.140 158);
+  --ok-tint: oklch(0.945 0.045 158);
+  --warn: oklch(0.600 0.130 70);
+  --warn-tint: oklch(0.950 0.050 78);
+  --bad: oklch(0.550 0.190 22);
+  --bad-tint: oklch(0.950 0.045 20);
+  --idle: oklch(0.600 0.010 264);
+  --idle-tint: oklch(0.945 0.004 264);
+
+  --seed: oklch(0.550 0.140 240);
+  --active: oklch(0.550 0.140 158);
+  --evicted: oklch(0.600 0.130 70);
+  --archive: oklch(0.600 0.010 264);
+  --entity: oklch(0.550 0.160 300);
+  --read: oklch(0.550 0.150 250);
+  --write: oklch(0.520 0.170 300);
+
+  --sh1: 0 1px 2px rgb(17 20 34 / 0.06), 0 4px 12px -6px rgb(17 20 34 / 0.10);
+  --sh2: 0 2px 4px rgb(17 20 34 / 0.07), 0 12px 24px -10px rgb(17 20 34 / 0.14);
+  --sh3: 0 6px 10px rgb(17 20 34 / 0.08), 0 24px 48px -16px rgb(17 20 34 / 0.20);
+  --inset: inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --sunk: inset 0 2px 4px rgb(17 20 34 / 0.09);
+
+  --background: oklch(0.951 0.004 264);
+  --foreground: oklch(0.260 0.014 264);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.260 0.014 264);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.260 0.014 264);
+  --primary: oklch(0.550 0.160 274);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.922 0.005 264);
+  --secondary-foreground: oklch(0.260 0.014 264);
+  --muted: oklch(0.922 0.005 264);
+  --muted-foreground: oklch(0.600 0.010 264);
+  --accent: oklch(0.945 0.040 274);
+  --accent-foreground: oklch(0.550 0.160 274);
+  --destructive: oklch(0.550 0.190 22);
+  --border: oklch(0.905 0.006 264);
+  --input: oklch(0.905 0.006 264);
+  --ring: oklch(0.550 0.160 274);
+  --chart-1: oklch(0.550 0.150 250);
+  --chart-2: oklch(0.520 0.170 300);
+  --chart-3: oklch(0.550 0.140 158);
+  --chart-4: oklch(0.600 0.130 70);
+  --chart-5: oklch(0.550 0.190 22);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.260 0.014 264);
+  --sidebar-primary: oklch(0.550 0.160 274);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.945 0.040 274);
+  --sidebar-accent-foreground: oklch(0.550 0.160 274);
+  --sidebar-border: oklch(0.905 0.006 264);
+  --sidebar-ring: oklch(0.550 0.160 274);
 }
 
+/* Gelap — bayangan nyaris tak terlihat, jadi elevasi dibawa terang
+   permukaan plus garis sorot 1px di tepi atas (--inset). Bukan sekadar
+   tukar warna: mekanismenya memang beda dari tema terang. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --bg: oklch(0.168 0.008 264);
+  --sunken: oklch(0.142 0.008 264);
+  --surf1: oklch(0.222 0.009 264);
+  --surf2: oklch(0.262 0.010 264);
+  --surf3: oklch(0.305 0.011 264);
+  --line: oklch(0.318 0.012 264);
+  --line-soft: oklch(0.262 0.010 264);
+  --tx1: oklch(0.962 0.004 264);
+  --tx2: oklch(0.780 0.008 264);
+  --tx3: oklch(0.620 0.010 264);
+
+  --accent-solid: oklch(0.720 0.130 274);
+  --accent-tint: oklch(0.300 0.060 274);
+  --ok: oklch(0.780 0.140 158);
+  --ok-tint: oklch(0.290 0.055 158);
+  --warn: oklch(0.830 0.130 78);
+  --warn-tint: oklch(0.300 0.050 78);
+  --bad: oklch(0.720 0.160 18);
+  --bad-tint: oklch(0.300 0.065 18);
+  --idle: oklch(0.620 0.010 264);
+  --idle-tint: oklch(0.270 0.008 264);
+
+  --seed: oklch(0.750 0.130 240);
+  --active: oklch(0.780 0.140 158);
+  --evicted: oklch(0.830 0.130 78);
+  --archive: oklch(0.620 0.010 264);
+  --entity: oklch(0.740 0.130 300);
+  --read: oklch(0.720 0.130 250);
+  --write: oklch(0.700 0.140 300);
+
+  --sh1: 0 1px 2px rgb(0 0 0 / 0.45), 0 6px 18px -10px rgb(0 0 0 / 0.8);
+  --sh2: 0 2px 4px rgb(0 0 0 / 0.5), 0 14px 32px -14px rgb(0 0 0 / 0.85);
+  --sh3: 0 8px 14px rgb(0 0 0 / 0.5), 0 28px 56px -20px rgb(0 0 0 / 0.9);
+  --inset: inset 0 1px 0 rgb(255 255 255 / 0.055);
+  --sunk: inset 0 2px 4px rgb(0 0 0 / 0.45);
+
+  --background: oklch(0.168 0.008 264);
+  --foreground: oklch(0.962 0.004 264);
+  --card: oklch(0.222 0.009 264);
+  --card-foreground: oklch(0.962 0.004 264);
+  --popover: oklch(0.262 0.010 264);
+  --popover-foreground: oklch(0.962 0.004 264);
+  --primary: oklch(0.720 0.130 274);
+  --primary-foreground: oklch(0.168 0.008 264);
+  --secondary: oklch(0.262 0.010 264);
+  --secondary-foreground: oklch(0.962 0.004 264);
+  --muted: oklch(0.262 0.010 264);
+  --muted-foreground: oklch(0.620 0.010 264);
+  --accent: oklch(0.300 0.060 274);
+  --accent-foreground: oklch(0.720 0.130 274);
+  --destructive: oklch(0.720 0.160 18);
+  --border: oklch(0.318 0.012 264);
+  --input: oklch(0.318 0.012 264);
+  --ring: oklch(0.720 0.130 274);
+  --chart-1: oklch(0.720 0.130 250);
+  --chart-2: oklch(0.700 0.140 300);
+  --chart-3: oklch(0.780 0.140 158);
+  --chart-4: oklch(0.830 0.130 78);
+  --chart-5: oklch(0.720 0.160 18);
+  --sidebar: oklch(0.222 0.009 264);
+  --sidebar-foreground: oklch(0.962 0.004 264);
+  --sidebar-primary: oklch(0.720 0.130 274);
+  --sidebar-primary-foreground: oklch(0.168 0.008 264);
+  --sidebar-accent: oklch(0.300 0.060 274);
+  --sidebar-accent-foreground: oklch(0.720 0.130 274);
+  --sidebar-border: oklch(0.318 0.012 264);
+  --sidebar-ring: oklch(0.720 0.130 274);
 }
 
 @layer base {
@@ -122,70 +238,53 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-bg text-tx-1;
   }
   html {
     @apply font-sans;
   }
 }
-/* ── Sistem kaca (glassmorphism) ─────────────────────────────────────────
-   Satu bahasa visual: panel tembus pandang di atas latar gradien gelap.
-   Dibangun dari utilitas Tailwind murni — tanpa dependensi baru, supaya
-   tidak berisiko bentrok dengan Next 16 / Tailwind v4.                     */
 
+/* ── Permukaan ───────────────────────────────────────────────────────────
+   Tiga tingkat elevasi plus satu sumur. Semuanya buram — tidak ada
+   backdrop-filter, tidak ada latar transparan bertumpuk.                   */
 @layer utilities {
-  .glass {
-    background: linear-gradient(
-      160deg,
-      color-mix(in oklab, white 7%, transparent),
-      color-mix(in oklab, white 2.5%, transparent)
-    );
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
-    border: 1px solid color-mix(in oklab, white 10%, transparent);
-    box-shadow:
-      0 1px 0 0 color-mix(in oklab, white 12%, transparent) inset,
-      0 20px 50px -24px rgb(0 0 0 / 0.9);
+  .panel {
+    background: var(--surf1);
+    border: 1px solid var(--line);
+    box-shadow: var(--sh1), var(--inset);
   }
-  .glass-hover {
-    transition: border-color .25s ease, transform .25s ease, box-shadow .25s ease;
+  .raised {
+    background: var(--surf2);
+    border: 1px solid var(--line);
+    box-shadow: var(--sh1), var(--inset);
   }
-  .glass-hover:hover {
-    border-color: color-mix(in oklab, white 18%, transparent);
-    transform: translateY(-2px);
-    box-shadow:
-      0 1px 0 0 color-mix(in oklab, white 16%, transparent) inset,
-      0 28px 60px -24px rgb(0 0 0 / 0.95);
+  .raised-2 {
+    background: var(--surf2);
+    border: 1px solid var(--line);
+    box-shadow: var(--sh2), var(--inset);
   }
-  .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-}
-
-/* Latar: gradien mesh statis — tidak beranimasi supaya tidak menyedot GPU
-   pada dasbor yang dibiarkan terbuka berjam-jam. */
-.mesh-bg {
-  position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background:
-    radial-gradient(60rem 40rem at 12% -10%, rgb(56 189 248 / 0.16), transparent 60%),
-    radial-gradient(50rem 36rem at 88% 8%,  rgb(168 85 247 / 0.14), transparent 60%),
-    radial-gradient(46rem 34rem at 50% 108%, rgb(16 185 129 / 0.12), transparent 60%),
-    #08080b;
-}
-.mesh-bg::after {
-  content: ""; position: absolute; inset: 0;
-  background-image: radial-gradient(rgb(255 255 255 / 0.045) 1px, transparent 1px);
-  background-size: 28px 28px;
-  mask-image: radial-gradient(75% 60% at 50% 40%, black, transparent);
-}
-
-/* Kanvas titik-titik untuk panel graph — lebih tegas dari .mesh-bg::after
-   (yang dibuat samar sengaja buat latar halaman biasa). Statis, tidak ikut
-   pan/zoom graph — cukup buat kesan "permukaan kerja", tidak menyedot GPU
-   dengan menghitung ulang transform tiap frame. */
-.graph-dots {
-  position: absolute; inset: 0; pointer-events: none;
-  background-image: radial-gradient(rgb(255 255 255 / 0.1) 1.4px, transparent 1.4px);
-  background-size: 22px 22px;
-  mask-image: radial-gradient(85% 80% at 50% 45%, black, transparent 92%);
+  .overlay {
+    background: var(--surf3);
+    border: 1px solid var(--line);
+    box-shadow: var(--sh3), var(--inset);
+  }
+  .well {
+    background: var(--sunken);
+    box-shadow: var(--sunk);
+  }
+  .panel-hover {
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  }
+  .panel-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--sh2), var(--inset);
+  }
+  .num {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
 }
 
 @keyframes pulse-ring {
@@ -196,6 +295,6 @@
 .live-dot { animation: pulse-ring 2.4s cubic-bezier(.4,0,.6,1) infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .glass-hover, .live-dot { transition: none; animation: none; }
-  .glass-hover:hover { transform: none; }
+  .panel-hover, .live-dot { transition: none; animation: none; }
+  .panel-hover:hover { transform: none; }
 }

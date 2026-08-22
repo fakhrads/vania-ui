@@ -1,0 +1,69 @@
+// Cetak markup sidebar dengan satu item ditandai aktif.
+// Dipakai semua artboard layar biar frame aplikasinya identik.
+const I = {
+  Kesehatan: '<path d="M3 12h4l3 8 4-16 3 8h4"></path>',
+  Korpus: '<path d="M9.5 3a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 6 17a3 3 0 0 0 3.5 3V3Z"></path><path d="M14.5 3a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2A3 3 0 0 1 18 17a3 3 0 0 1-3.5 3V3Z"></path>',
+  Graph: '<circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="m8.6 13.5 6.8 4"></path><path d="m15.4 6.5-6.8 4"></path>',
+  Audit: '<rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M9 12h6"></path><path d="M9 16h6"></path>',
+  Cari: '<circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.9-3.9"></path>',
+  Inbox: '<rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m2 7 10 6 10-6"></path>',
+  Observasi: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle>',
+};
+const active = process.argv[2];
+const brain = I.Korpus;
+const item = (name) => {
+  const on = name === active;
+  const style = on
+    ? 'display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; font-weight: 500; color: var(--tx1); background: var(--surf2); border: 1px solid var(--line); box-shadow: var(--sh1), var(--inset)'
+    : 'display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; color: var(--tx2); border: 1px solid transparent';
+  const stroke = on ? 'var(--accent)' : 'currentColor';
+  const sw = on ? '2' : '1.8';
+  return `        <a href="#" style="${style}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${I[name]}</svg>
+          ${name}
+        </a>`;
+};
+const nav = Object.keys(I).map(item).join('\n');
+process.stdout.write(`  <aside style="width: 248px; flex-shrink: 0; padding: 14px">
+    <div style="display: flex; flex-direction: column; gap: 4px; height: 100%; padding: 14px; border: 1px solid var(--line); border-radius: 20px; background: var(--surf1); box-shadow: var(--sh1), var(--inset)">
+
+      <div style="display: flex; align-items: center; gap: 11px; padding: 6px 4px 14px">
+        <div style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 12px; background: var(--surf2); border: 1px solid var(--line); box-shadow: var(--sh1), var(--inset); color: var(--accent)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${brain}</svg>
+        </div>
+        <div style="min-width: 0">
+          <p style="margin: 0; font-size: 13px; font-weight: 600; color: var(--tx1); letter-spacing: -.01em">Fakhri's Agentic Memory</p>
+          <p style="margin: 2px 0 0; font-size: 10.5px; color: var(--tx3)">panel pemantauan</p>
+        </div>
+      </div>
+
+      <nav style="display: flex; flex-direction: column; gap: 3px">
+${nav}
+      </nav>
+
+      <div style="flex-grow: 1"></div>
+
+      <div style="display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--sunken); box-shadow: var(--sunk); margin-bottom: 10px">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; flex-grow: 1; padding: 7px; border-radius: 10px; font-size: 12px; color: var(--tx3)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+          Terang
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; flex-grow: 1; padding: 7px; border-radius: 10px; font-size: 12px; font-weight: 500; color: var(--tx1); background: var(--surf2); border: 1px solid var(--line); box-shadow: var(--sh1), var(--inset)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"></path></svg>
+          Gelap
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--line-soft)">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: var(--ok-bg); font-size: 11.5px; color: var(--ok)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-4"></path></svg>
+          Baca-saja
+        </div>
+        <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; color: var(--tx3)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path></svg>
+          Keluar
+        </a>
+      </div>
+    </div>
+  </aside>
+`);

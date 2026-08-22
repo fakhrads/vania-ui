@@ -23,15 +23,14 @@ export function Guard({ children }: { children: React.ReactNode }) {
 
   if (loading || !token) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="mesh-bg" />
-        <div className="glass flex items-center gap-3 rounded-3xl px-6 py-5">
-          <div className="flex size-9 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-sky-400/25 to-violet-500/20">
-            <Brain className="size-4 animate-pulse text-sky-300" />
+      <div className="flex min-h-screen items-center justify-center bg-bg p-4">
+        <div className="panel flex items-center gap-3.5 rounded-2xl px-6 py-5">
+          <div className="raised flex size-10 items-center justify-center rounded-xl text-accent-solid">
+            <Brain className="size-4 animate-pulse" />
           </div>
           <div>
-            <p className="text-sm font-medium text-zinc-200">Fakhri&apos;s Agentic Memory</p>
-            <p className="text-xs text-zinc-500">
+            <p className="text-sm font-medium text-tx-1">Fakhri&apos;s Agentic Memory</p>
+            <p className="text-xs text-tx-3">
               {loading ? "Memeriksa sesi…" : "Mengarahkan ke masuk…"}
             </p>
           </div>

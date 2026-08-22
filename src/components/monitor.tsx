@@ -4,19 +4,30 @@ import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { authFetch } from "@/lib/auth-fetch";
 
-/* ── Panel kaca ──────────────────────────────────────────────────────── */
+/* ── Permukaan ───────────────────────────────────────────────────────── */
 
-export function Glass({
+export function Panel({
   className,
   children,
   hover = false,
+  level = 1,
 }: {
   className?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   hover?: boolean;
+  level?: 1 | 2 | 3;
 }) {
   return (
-    <div className={cn("glass rounded-3xl", hover && "glass-hover", className)}>
+    <div
+      className={cn(
+        level === 1 && "panel",
+        level === 2 && "raised-2",
+        level === 3 && "overlay",
+        hover && "panel-hover",
+        "rounded-2xl",
+        className
+      )}
+    >
       {children}
     </div>
   );
@@ -26,35 +37,67 @@ export function Glass({
 
 export type Tone = "ok" | "warn" | "bad" | "idle";
 
-const TONE: Record<Tone, { dot: string; text: string; ring: string }> = {
-  ok:   { dot: "bg-emerald-400", text: "text-emerald-300", ring: "rgb(52 211 153 / 0.55)" },
-  warn: { dot: "bg-amber-400",   text: "text-amber-300",   ring: "rgb(251 191 36 / 0.55)" },
-  bad:  { dot: "bg-rose-400",    text: "text-rose-300",    ring: "rgb(251 113 133 / 0.55)" },
-  idle: { dot: "bg-zinc-500",    text: "text-zinc-400",    ring: "rgb(161 161 170 / 0.4)" },
+const TONE: Record<Tone, { text: string; tint: string; ring: string }> = {
+  ok:   { text: "text-ok",   tint: "bg-ok-tint",   ring: "var(--ok)" },
+  warn: { text: "text-warn", tint: "bg-warn-tint", ring: "var(--warn)" },
+  bad:  { text: "text-bad",  tint: "bg-bad-tint",  ring: "var(--bad)" },
+  idle: { text: "text-tx-2", tint: "bg-idle-tint", ring: "var(--idle)" },
 };
 
-export function StatusDot({ tone, live = false }: { tone: Tone; live?: boolean }) {
+/**
+ * Penanda status. Bentuknya berbeda per tone, bukan cuma warnanya —
+ * emerald lawan rose tidak terbedakan untuk mata yang sulit membedakan
+ * merah-hijau, dan status adalah sinyal terpenting di panel ini.
+ */
+export function StatusDot({
+  tone,
+  live = false,
+  size = 10,
+}: {
+  tone: Tone;
+  live?: boolean;
+  size?: number;
+}) {
+  const fill = `var(--${tone === "idle" ? "idle" : tone})`;
+  const shape =
+    tone === "ok" ? (
+      <circle cx="5" cy="5" r="4" fill={fill} />
+    ) : tone === "warn" ? (
+      <path d="M5 1 9.3 8.5H.7Z" fill={fill} />
+    ) : tone === "bad" ? (
+      <path d="M5 .6 9.4 5 5 9.4.6 5Z" fill={fill} />
+    ) : (
+      <circle cx="5" cy="5" r="3.4" fill="none" stroke={fill} strokeWidth="1.6" />
+    );
+
   return (
     <span
-      className={cn("inline-block size-2 rounded-full", TONE[tone].dot, live && "live-dot")}
+      className={cn("inline-flex shrink-0 items-center justify-center rounded-full", live && "live-dot")}
       style={live ? ({ "--ring-color": TONE[tone].ring } as React.CSSProperties) : undefined}
-    />
+    >
+      <svg width={size} height={size} viewBox="0 0 10 10" aria-hidden="true">
+        {shape}
+      </svg>
+    </span>
   );
 }
 
 export function Pill({
   tone = "idle",
   children,
+  className,
 }: {
   tone?: Tone;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  className?: string;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1",
-        "text-[11px] font-medium border border-white/10 bg-white/[0.04]",
-        TONE[tone].text
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium",
+        TONE[tone].tint,
+        TONE[tone].text,
+        className
       )}
     >
       {children}
@@ -78,16 +121,14 @@ export function Stat({
   className?: string;
 }) {
   return (
-    <Glass hover className={cn("p-5", className)}>
-      <div className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-zinc-500">
+    <Panel hover className={cn("p-5", className)}>
+      <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.14em] text-tx-3">
         <StatusDot tone={tone} />
         {label}
       </div>
-      <div className={cn("num mt-3 text-3xl font-semibold", TONE[tone].text)}>
-        {value}
-      </div>
-      {sub ? <div className="mt-1.5 text-xs text-zinc-500">{sub}</div> : null}
-    </Glass>
+      <div className={cn("num mt-3 text-3xl font-semibold", TONE[tone].text)}>{value}</div>
+      {sub ? <div className="mt-1.5 text-xs text-tx-3">{sub}</div> : null}
+    </Panel>
   );
 }
 
@@ -102,23 +143,23 @@ export function Bars({
 }) {
   const max = Math.max(1, ...data.map((d) => d.a + d.b));
   return (
-    <div className={cn("flex h-24 items-end gap-[3px]", className)}>
+    <div className={cn("well flex h-28 items-end gap-[3px] rounded-xl px-2.5 py-2", className)}>
       {data.map((d, i) => (
         <div key={i} className="group relative flex-1" title={`${d.label} · tulis ${d.b} · baca ${d.a}`}>
-          <div className="flex w-full flex-col justify-end gap-[2px]" style={{ height: "6rem" }}>
+          <div className="flex h-24 w-full flex-col justify-end gap-[2px]">
             {d.a > 0 && (
               <div
-                className="w-full rounded-t-[3px] bg-sky-400/70"
+                className="w-full rounded-t-[3px] bg-read"
                 style={{ height: `${(d.a / max) * 100}%` }}
               />
             )}
             {d.b > 0 && (
               <div
-                className={cn("w-full bg-violet-400/60", d.a === 0 && "rounded-t-[3px]")}
+                className={cn("w-full bg-write", d.a === 0 && "rounded-t-[3px]")}
                 style={{ height: `${(d.b / max) * 100}%` }}
               />
             )}
-            {d.a + d.b === 0 && <div className="h-[2px] w-full rounded bg-white/5" />}
+            {d.a + d.b === 0 && <div className="h-[2px] w-full rounded bg-line" />}
           </div>
         </div>
       ))}
@@ -176,3 +217,11 @@ export function ago(seconds: number | null | undefined) {
   if (seconds < 86400) return `${Math.round(seconds / 3600)} jam lalu`;
   return `${Math.round(seconds / 86400)} hari lalu`;
 }
+
+/* Nada per tier korpus & aksi audit — dipakai lintas halaman. */
+export const KIND_CLASS: Record<string, string> = {
+  seed: "text-seed bg-accent-tint",
+  active: "text-active bg-ok-tint",
+  evicted: "text-evicted bg-warn-tint",
+  archive: "text-tx-2 bg-idle-tint",
+};
