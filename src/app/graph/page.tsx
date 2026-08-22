@@ -592,7 +592,7 @@ export default function GraphPage() {
       <div className="flex min-h-screen flex-col lg:flex-row">
         <Sidebar />
 
-        <main className="flex-1 overflow-hidden px-6 py-8 lg:px-10">
+        <main className="flex-1 overflow-y-auto px-6 pb-28 pt-8 lg:overflow-hidden lg:px-10 lg:pb-8">
           <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">
@@ -602,7 +602,7 @@ export default function GraphPage() {
                 Entri &amp; entitas graph berdasarkan tautan, dengan entitas paling sibuk di tengah. Klik node untuk lihat detailnya.
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               {data && (
                 <Pill tone={tone}>
                   <StatusDot tone={tone} live />
@@ -638,15 +638,15 @@ export default function GraphPage() {
             </div>
           </header>
 
-          <div className="grid h-[calc(100vh-11rem)] gap-4 lg:grid-cols-[1fr_340px]">
-            <Panel className="well relative overflow-hidden border border-line p-0">
+          <div className="grid gap-4 lg:h-[calc(100vh-11rem)] lg:grid-cols-[1fr_340px]">
+            <Panel className="well relative h-[62vh] min-h-[340px] overflow-hidden border border-line p-0 lg:h-auto lg:min-h-0">
               {/* Pengukur kotak panel. Canvas force-graph butuh width/height
                   eksplisit — defaultnya seukuran window, bukan seukuran panel
                   ini — dan div inilah yang melaporkan ukurannya. */}
               <div ref={wrapRef} aria-hidden className="pointer-events-none absolute inset-0" />
 
               {/* Kotak cari — lompat ke node tertentu tanpa scroll manual */}
-              <div className="absolute left-4 top-4 z-20 w-64">
+              <div className="absolute left-3 right-3 top-3 z-20 sm:left-4 sm:top-4 sm:right-auto sm:w-64">
                 <div className="panel flex items-center gap-2 rounded-xl px-3 py-2">
                   <Search className="size-3.5 shrink-0 text-tx-3" />
                   <input
@@ -837,7 +837,7 @@ export default function GraphPage() {
               {popupNode && (
                 <div
                   ref={popupRef}
-                  className="overlay pointer-events-auto absolute left-0 top-0 z-30 w-72 rounded-2xl p-4"
+                  className="overlay pointer-events-auto absolute left-0 top-0 z-30 w-72 max-w-[calc(100vw-3rem)] rounded-2xl p-4"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -868,7 +868,7 @@ export default function GraphPage() {
               )}
             </Panel>
 
-            <div className="space-y-4 overflow-y-auto">
+            <div className="space-y-4 lg:overflow-y-auto">
               <Panel className="p-5">
                 <h2 className="text-sm font-medium text-tx-2">Legenda</h2>
                 <p className="mb-2.5 mt-1 text-[10.5px] leading-relaxed text-tx-3">

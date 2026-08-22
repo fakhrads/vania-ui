@@ -49,7 +49,7 @@ export default function InboxPage() {
     <Guard>
     <div className="flex min-h-screen flex-col lg:flex-row">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto px-6 py-8 lg:px-10">
+      <main className="flex-1 overflow-y-auto px-6 pb-28 pt-8 lg:px-10 lg:pb-8">
         <header className="mb-6">
           <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">Inbox</h1>
           <p className="mt-1 text-sm text-tx-3">

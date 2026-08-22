@@ -8,7 +8,7 @@ import { useTheme, type Mode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import {
   Activity, Brain, Mail, Eye, Search, ClipboardList, LogOut, ShieldCheck,
-  Share2, Menu, X, Sun, Moon, MonitorCog,
+  Share2, X, Sun, Moon, MonitorCog, Ellipsis,
 } from "lucide-react";
 
 const links = [
@@ -21,15 +21,23 @@ const links = [
   { href: "/observations", label: "Observasi", icon: Eye },
 ];
 
-function Brand({ compact = false }: { compact?: boolean }) {
+/**
+ * Tujuh menu tidak muat jadi tab semua di layar telepon — dipaksa muat
+ * bikin sasaran sentuhnya di bawah ukuran nyaman. Empat yang paling sering
+ * dibuka jadi tab tetap, sisanya lewat "Lainnya" yang membuka sheet berisi
+ * SELURUH menu (termasuk yang empat), jadi tidak ada yang tidak terjangkau.
+ */
+const TAB_HREFS = ["/", "/ltm", "/graph", "/search"];
+
+function Brand() {
   return (
-    <div className={cn("flex items-center gap-3", compact ? "" : "px-1 py-3")}>
+    <div className="flex items-center gap-3 px-1 py-3">
       <div className="raised flex size-9 shrink-0 items-center justify-center rounded-xl text-accent-solid">
         <Brain className="size-4" />
       </div>
       <div className="min-w-0">
         <p className="truncate text-[13px] font-semibold text-tx-1">Fakhri&apos;s Agentic Memory</p>
-        {!compact && <p className="text-[10px] text-tx-3">panel pemantauan</p>}
+        <p className="text-[10px] text-tx-3">panel pemantauan</p>
       </div>
     </div>
   );
@@ -117,6 +125,9 @@ export function Sidebar() {
   const { logout } = useAuth();
   const [open, setOpen] = useState(false);
 
+  const tabs = links.filter((l) => TAB_HREFS.includes(l.href));
+  const onOverflowRoute = !TAB_HREFS.includes(pathname);
+
   // Rute ganti (link diklik, atau navigasi lain) -> tutup drawer. Tanpa ini
   // drawer nyangkut kebuka di halaman berikutnya kalau ditutup lewat cara
   // selain klik link (mis. tombol back).
@@ -135,27 +146,55 @@ export function Sidebar() {
         </div>
       </aside>
 
-      {/* Mobile — top bar persisten (bagian dari flow, bukan overlay, jadi
-          gak nutupin konten) + drawer slide-in dari kiri saat hamburger
-          diklik. */}
-      <div className="panel sticky top-0 z-30 mx-3 mt-3 flex shrink-0 items-center justify-between rounded-2xl px-3 py-2 lg:hidden">
-        <Brand compact />
-        <button
-          onClick={() => setOpen(true)}
-          aria-label="Buka navigasi"
-          className="raised flex size-11 items-center justify-center rounded-xl text-tx-1"
-        >
-          <Menu className="size-4" />
-        </button>
-      </div>
+      {/* Mobile — bottom nav melayang. Sengaja fixed, bukan ikut flow:
+          halaman ini panjang-panjang dan navigasinya harus tetap kejangkau
+          jempol tanpa scroll balik ke atas. Konsekuensinya dia menutupi
+          bagian bawah konten, jadi tiap <main> punya padding bawah ekstra
+          (pb-28) buat mengimbangi — lihat halaman-halamannya. */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)] lg:hidden">
+        <div className="panel mx-3 mb-3 flex items-stretch gap-1 rounded-2xl p-1.5">
+          {tabs.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl py-2 text-[10px] transition-colors",
+                  active ? "raised font-medium text-tx-1" : "text-tx-3"
+                )}
+              >
+                <Icon className={cn("size-[18px] shrink-0", active && "text-accent-solid")} />
+                <span className="w-full truncate text-center">{label}</span>
+              </Link>
+            );
+          })}
+          <button
+            onClick={() => setOpen(true)}
+            aria-label="Menu lainnya"
+            aria-expanded={open}
+            className={cn(
+              "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl py-2 text-[10px] transition-colors",
+              onOverflowRoute ? "raised font-medium text-tx-1" : "text-tx-3"
+            )}
+          >
+            <Ellipsis className={cn("size-[18px] shrink-0", onOverflowRoute && "text-accent-solid")} />
+            <span className="w-full truncate text-center">Lainnya</span>
+          </button>
+        </div>
+      </nav>
 
+      {/* Sheet naik dari bawah, bukan drawer dari samping — asalnya dari
+          tombol di bar bawah, jadi arah munculnya mengikuti tombolnya. */}
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setOpen(false)}
           />
-          <div className="overlay absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col rounded-r-[20px] p-3.5">
+          <div className="overlay absolute inset-x-0 bottom-0 flex max-h-[88vh] flex-col overflow-y-auto rounded-t-[20px] p-3.5 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <div className="mx-auto mb-2 h-1 w-10 shrink-0 rounded-full bg-line" />
             <div className="flex items-center justify-between">
               <Brand />
               <button
