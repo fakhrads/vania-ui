@@ -8,11 +8,13 @@ import { useTheme, type Mode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import {
   Activity, Brain, Mail, Eye, Search, ClipboardList, LogOut, ShieldCheck,
-  Share2, X, Sun, Moon, MonitorCog, Ellipsis,
+  Share2, X, Sun, Moon, MonitorCog, Ellipsis, Kanban, Bot,
 } from "lucide-react";
 
 const links = [
   { href: "/", label: "Kesehatan", icon: Activity },
+  { href: "/kanban", label: "Kanban", icon: Kanban },
+  { href: "/agents", label: "Subagents", icon: Bot },
   { href: "/ltm", label: "Korpus", icon: Brain },
   { href: "/graph", label: "Graph", icon: Share2 },
   { href: "/ops", label: "Audit", icon: ClipboardList },
