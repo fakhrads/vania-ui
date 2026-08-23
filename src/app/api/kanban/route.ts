@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-guard";
-import { getKanbanDb } from "@/lib/sqlite";
+import { query } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -9,22 +9,21 @@ export async function GET(req: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
-    const db = getKanbanDb();
+    const res = await query(
+      `SELECT id, board_slug, title, body, assignee, status, priority, created_by,
+              created_at, started_at, completed_at, workspace_kind, branch_name,
+              consecutive_failures, last_failure_error, worker_pid, model_override
+       FROM vania_kanban_tasks
+       ORDER BY priority DESC, created_at DESC`
+    );
 
-    // Ambil list tasks beserta metrics
-    const tasks = db
-      .prepare(
-        `SELECT id, title, body, assignee, status, priority, created_by,
-                created_at, started_at, completed_at, workspace_kind, branch_name,
-                consecutive_failures, last_failure_error, worker_pid,
-                workflow_template_id, current_step_key, model_override,
-                last_heartbeat_at
-         FROM tasks
-         ORDER BY priority DESC, created_at DESC`
-      )
-      .all();
+    const tasks = res.rows.map((t: any) => ({
+      ...t,
+      created_at: Number(t.created_at),
+      started_at: t.started_at ? Number(t.started_at) : null,
+      completed_at: t.completed_at ? Number(t.completed_at) : null,
+    }));
 
-    // Summary per status
     const summary = {
       total: tasks.length,
       backlog: tasks.filter((t: any) => t.status === "backlog" || t.status === "todo").length,
