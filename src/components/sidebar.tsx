@@ -38,8 +38,8 @@ function Brand() {
         <Brain className="size-4" />
       </div>
       <div className="min-w-0">
-        <p className="truncate text-[13px] font-semibold text-tx-1">Fakhri&apos;s Agentic Memory</p>
-        <p className="text-[10px] text-tx-3">panel pemantauan</p>
+        <p className="truncate text-[13px] font-semibold text-tx-1">Caduceus</p>
+        <p className="text-[10px] text-tx-3">hermes mission control</p>
       </div>
     </div>
   );

@@ -17,8 +17,8 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fakhri's Agentic Memory",
-  description: "Panel pemantauan baca-saja untuk memori & aktivitas Vania",
+  title: "Caduceus — Hermes Agentic Memory & Mission Control",
+  description: "Open-source knowledge graph, memory explorer, kanban, and subagent tracking for Hermes Agent",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

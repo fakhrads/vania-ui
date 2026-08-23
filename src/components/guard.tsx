@@ -29,7 +29,7 @@ export function Guard({ children }: { children: React.ReactNode }) {
             <Brain className="size-4 animate-pulse" />
           </div>
           <div>
-            <p className="text-sm font-medium text-tx-1">Fakhri&apos;s Agentic Memory</p>
+            <p className="text-sm font-medium text-tx-1">Caduceus</p>
             <p className="text-xs text-tx-3">
               {loading ? "Memeriksa sesi…" : "Mengarahkan ke masuk…"}
             </p>
