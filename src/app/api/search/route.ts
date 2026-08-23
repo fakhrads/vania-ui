@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query } from "@/lib/db";
 import { requireAuth } from "@/lib/api-guard";
+import { query } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -9,47 +9,68 @@ export async function POST(req: NextRequest) {
   if (auth.error) return auth.error;
 
   const { query: q, limit: rawLimit } = await req.json();
-  if (!q?.trim()) {
-    return NextResponse.json({ error: "query required" }, { status: 400 });
+  const limit = Math.min(Math.max(Number(rawLimit) || 20, 1), 100);
+
+  if (!q || typeof q !== "string" || q.trim().length === 0) {
+    return NextResponse.json({ ok: false, error: "Query cannot be empty" }, { status: 400 });
   }
 
-  const limit = Math.min(20, Math.max(1, rawLimit || 10));
+  const pattern = `%${q.trim()}%`;
 
   try {
-    const [inboxRes, obsRes, ltmRes] = await Promise.all([
+    const [inboxRes, obsRes, ltmRes, kanbanRes] = await Promise.all([
       query(
-        `SELECT id, left(turn_text, 200) as preview, turn_at as created_at
+        `SELECT id, sender, turn_text as content, created_at, 'inbox' as source
          FROM vania_inbox_legacy
          WHERE turn_text ILIKE $1
-         ORDER BY created_at DESC LIMIT $2`,
-        [`%${q}%`, limit]
+         ORDER BY created_at DESC
+         LIMIT $2`,
+        [pattern, limit]
       ),
       query(
-        `SELECT id, left(claim, 200) as preview, kind, confidence, created_at
+        `SELECT id, claim as content, scope, status, created_at, 'observation' as source
          FROM vania_obs_active
          WHERE claim ILIKE $1
-         ORDER BY created_at DESC LIMIT $2`,
-        [`%${q}%`, limit]
+         ORDER BY created_at DESC
+         LIMIT $2`,
+        [pattern, limit]
       ),
       query(
-        `SELECT id, left(content, 200) as preview, provenance, kind, created_at
+        `SELECT id, content, kind, scope, audience, created_at, 'ltm' as source
          FROM vania_ltm
          WHERE content ILIKE $1
-         ORDER BY created_at DESC LIMIT $2`,
-        [`%${q}%`, limit]
+         ORDER BY created_at DESC
+         LIMIT $2`,
+        [pattern, limit]
+      ),
+      query(
+        `SELECT id, title as content, board_slug, status, created_at, 'kanban' as source
+         FROM vania_kanban_tasks
+         WHERE title ILIKE $1 OR body ILIKE $1
+         ORDER BY created_at DESC
+         LIMIT $2`,
+        [pattern, limit]
       ),
     ]);
 
+    const results = [
+      ...ltmRes.rows,
+      ...kanbanRes.rows,
+      ...obsRes.rows,
+      ...inboxRes.rows,
+    ];
+
     return NextResponse.json({
+      ok: true,
       query: q,
-      results: {
-        inbox: inboxRes.rows,
-        observations: obsRes.rows,
-        ltm: ltmRes.rows,
-        total: inboxRes.rows.length + obsRes.rows.length + ltmRes.rows.length,
-      },
+      total: results.length,
+      results,
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Search error:", err);
+    return NextResponse.json(
+      { ok: false, error: err.message || "Search failed" },
+      { status: 500 }
+    );
   }
 }

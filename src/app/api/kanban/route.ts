@@ -8,14 +8,30 @@ export async function GET(req: NextRequest) {
   const auth = await requireAuth(req);
   if (auth.error) return auth.error;
 
+  const { searchParams } = new URL(req.url);
+  const selectedBoard = searchParams.get("board");
+
   try {
-    const res = await query(
-      `SELECT id, board_slug, title, body, assignee, status, priority, created_by,
-              created_at, started_at, completed_at, workspace_kind, branch_name,
-              consecutive_failures, last_failure_error, worker_pid, model_override
-       FROM vania_kanban_tasks
-       ORDER BY priority DESC, created_at DESC`
+    // Ambil list semua board yang tersedia
+    const boardsRes = await query(
+      `SELECT DISTINCT board_slug FROM vania_kanban_tasks ORDER BY board_slug ASC`
     );
+    const boards = boardsRes.rows.map((r: any) => r.board_slug);
+
+    let sql = `SELECT id, board_slug, title, body, assignee, status, priority, created_by,
+                      created_at, started_at, completed_at, workspace_kind, branch_name,
+                      consecutive_failures, last_failure_error, worker_pid, model_override
+               FROM vania_kanban_tasks`;
+    const params: any[] = [];
+
+    if (selectedBoard && selectedBoard !== "all") {
+      sql += ` WHERE board_slug = $1`;
+      params.push(selectedBoard);
+    }
+
+    sql += ` ORDER BY priority DESC, created_at DESC`;
+
+    const res = await query(sql, params);
 
     const tasks = res.rows.map((t: any) => ({
       ...t,
@@ -34,6 +50,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      boards,
       summary,
       tasks,
     });

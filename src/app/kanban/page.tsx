@@ -6,7 +6,7 @@ import { Guard } from "@/components/guard";
 import { useLive } from "@/components/monitor";
 import {
   CheckCircle2, Clock, AlertCircle, PlayCircle,
-  GitBranch, RefreshCw, Layers
+  GitBranch, RefreshCw, Layers, Filter
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +32,7 @@ interface Task {
 
 interface KanbanData {
   ok: boolean;
+  boards: string[];
   summary: {
     total: number;
     backlog: number;
@@ -50,9 +51,12 @@ const COLUMNS = [
 ];
 
 export default function KanbanPage() {
-  const { data, err, refresh } = useLive<KanbanData>("/api/kanban", 3000);
+  const [selectedBoard, setSelectedBoard] = useState<string>("all");
+  const endpoint = selectedBoard === "all" ? "/api/kanban" : `/api/kanban?board=${selectedBoard}`;
+  const { data, refresh } = useLive<KanbanData>(endpoint, 3000);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
+  const boards = data?.boards || [];
   const summary = data?.summary || { total: 0, backlog: 0, in_progress: 0, review: 0, done: 0 };
   const tasks = data?.tasks || [];
 
@@ -74,13 +78,35 @@ export default function KanbanPage() {
                   Pelacakan tugas multi-agent, pipeline autonomous, dan status alur kerja Hermes.
                 </p>
               </div>
-              <button
-                onClick={() => refresh()}
-                className="raised flex items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-medium text-tx-1 transition-transform active:scale-95"
-              >
-                <RefreshCw className="size-3.5 text-tx-3" />
-                Segarkan
-              </button>
+
+              <div className="flex items-center gap-2.5">
+                {/* Board Selector Filter */}
+                {boards.length > 0 && (
+                  <div className="well flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[12px] text-tx-2">
+                    <Filter className="size-3.5 text-tx-3" />
+                    <select
+                      value={selectedBoard}
+                      onChange={(e) => setSelectedBoard(e.target.value)}
+                      className="bg-transparent text-tx-1 outline-none cursor-pointer"
+                    >
+                      <option value="all">Semua Board ({boards.length})</option>
+                      {boards.map((b) => (
+                        <option key={b} value={b}>
+                          Board: {b}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => refresh()}
+                  className="raised flex items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-medium text-tx-1 transition-transform active:scale-95"
+                >
+                  <RefreshCw className="size-3.5 text-tx-3" />
+                  Segarkan
+                </button>
+              </div>
             </div>
 
             {/* Stats Grid */}

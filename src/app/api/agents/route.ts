@@ -4,6 +4,15 @@ import { query, queryOne } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+// Simple regex redactor to avoid leaking raw secret keys / credentials in transcripts
+function redactSecrets(text: string): string {
+  if (!text) return text;
+  return text
+    .replace(/(sk-[a-zA-Z0-9_-]{20,})/g, "[REDACTED_API_KEY]")
+    .replace(/(Bearer\s+[a-zA-Z0-9_\-\.]{20,})/gi, "Bearer [REDACTED_TOKEN]")
+    .replace(/(password|passwd|secret)\s*[:=]\s*["']?([^"'\s]+)["']?/gi, '$1: "[REDACTED]"');
+}
+
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req);
   if (auth.error) return auth.error;
@@ -25,15 +34,25 @@ export async function GET(req: NextRequest) {
       let logs: any[] = [];
       if (delegation.transcript_json) {
         try {
-          logs = JSON.parse(delegation.transcript_json);
+          const rawLogs = JSON.parse(delegation.transcript_json);
+          logs = rawLogs.map((log: any) => {
+            if (typeof log === "string") return { raw: redactSecrets(log) };
+            if (log.raw) return { ...log, raw: redactSecrets(log.raw) };
+            if (log.content) return { ...log, content: redactSecrets(log.content) };
+            return log;
+          });
         } catch {
-          logs = [{ raw: delegation.transcript_json }];
+          logs = [{ raw: redactSecrets(delegation.transcript_json) }];
         }
       }
 
       return NextResponse.json({
         ok: true,
-        delegation,
+        delegation: {
+          ...delegation,
+          task_json: delegation.task_json ? redactSecrets(delegation.task_json) : null,
+          result_json: delegation.result_json ? redactSecrets(delegation.result_json) : null,
+        },
         logs,
       });
     }
@@ -46,7 +65,11 @@ export async function GET(req: NextRequest) {
        LIMIT 100`
     );
 
-    const delegations = res.rows;
+    const delegations = res.rows.map((d: any) => ({
+      ...d,
+      task_json: d.task_json ? redactSecrets(d.task_json) : null,
+      result_json: d.result_json ? redactSecrets(d.result_json) : null,
+    }));
 
     const summary = {
       total: delegations.length,
