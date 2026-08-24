@@ -18,7 +18,6 @@ const links = [
   { href: "/agents", label: "Subagents", icon: Bot },
   { href: "/ltm", label: "Korpus", icon: Brain },
   { href: "/graph", label: "Graph", icon: Share2 },
-  { href: "/graph-3d", label: "3D Graph", icon: Box },
   { href: "/ops", label: "Audit", icon: ClipboardList },
   { href: "/search", label: "Cari", icon: Search },
   { href: "/inbox", label: "Inbox", icon: Mail },
