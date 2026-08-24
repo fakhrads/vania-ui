@@ -41,7 +41,7 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 const LEGEND_ROWS = [
-  { key: "entity", label: "entitas", note: "bercahaya ungu" },
+  { key: "entity", label: "entitas (inti)", note: "center cluster" },
   { key: "seed", label: KIND_LABEL.seed, note: "biru" },
   { key: "active", label: KIND_LABEL.active, note: "hijau" },
   { key: "evicted", label: KIND_LABEL.evicted, note: "kuning" },
@@ -105,8 +105,8 @@ type CanvasPalette = {
 
 const CANVAS: Record<"dark" | "light", CanvasPalette> = {
   dark: {
-    kind: { seed: "#5aa9f8", active: "#3ad39b", evicted: "#f0b74a", archive: "#8b8f9c" },
-    entity: "#b98cf5",
+    kind: { seed: "#38bdf8", active: "#34d399", evicted: "#fbbf24", archive: "#94a3b8" },
+    entity: "#c084fc",
     fallback: "#8b8f9c",
     linkIdle: "rgba(255,255,255,0.10)",
     linkOn: "rgba(255,255,255,0.85)",
@@ -229,7 +229,6 @@ export default function GraphPage() {
         if (existing) {
           Object.assign(existing, incoming);
           if (is3D) {
-            // Unpin di 3D agar fisika 3D bebas bergerak di ruang X, Y, Z
             delete existing.fx;
             delete existing.fy;
             delete existing.fz;
@@ -295,38 +294,62 @@ export default function GraphPage() {
     forcesConfigured.current = true;
   }, [data, is3D]);
 
-  // Konfigurasi Gaya Fisika 3D Volumetrik (Bebas di ruang X, Y, Z)
+  // Fisika 3D Spherical Cluster: Center Gravity + Radial Force ala Neo4j 3D Globe
   useEffect(() => {
     if (!is3D || !fg3dRef.current) return;
     const fg = fg3dRef.current;
     
+    // Tolakan muatan partikel agar tidak saling tumpang tindih di dalam bola
     const charge = fg.d3Force?.("charge");
     if (charge?.strength) {
-      charge.strength(-260);
-      charge.distanceMax?.(850);
+      charge.strength(-220);
+      charge.distanceMax?.(600);
     }
+
+    // Link spring yang menarik relasi agar membentuk cluster padat
     const link = fg.d3Force?.("link");
     if (link?.distance) {
-      link.distance(110);
+      link.distance(65);
     }
+
+    // Custom 3D Radial & Centering Force agar bentuk keseluruhan mengumpul jadi bola (Globe Cluster)
+    const customSphereForce = (alpha: number) => {
+      const nodes = fg.graphData?.()?.nodes;
+      if (!nodes) return;
+      
+      const targetRadius = 180; // Radius bola dari jauh
+      for (const node of nodes) {
+        if (!Number.isFinite(node.x) || !Number.isFinite(node.y) || !Number.isFinite(node.z)) continue;
+        
+        const dist = Math.hypot(node.x, node.y, node.z) || 1;
+        // Lembutkan tarikan ke radius bola (surface + volume)
+        const diff = (dist - targetRadius) * alpha * 0.08;
+        
+        node.vx = (node.vx || 0) - (node.x / dist) * diff;
+        node.vy = (node.vy || 0) - (node.y / dist) * diff;
+        node.vz = (node.vz || 0) - (node.z / dist) * diff;
+      }
+    };
+
+    fg.d3Force?.("sphereConstraint", customSphereForce);
     fg.d3ReheatSimulation?.();
   }, [is3D]);
 
-  // Auto rotation kamera 3D
+  // Auto-Orbit camera melingkari bola 3D
   useEffect(() => {
     if (!is3D || !fg3dRef.current) return;
     const fg = fg3dRef.current;
 
     let animationFrameId: number;
     let angle = 0;
-    const rotateSpeed = 0.0018;
+    const rotateSpeed = 0.0016;
 
     const animate = () => {
       if (autoRotate && !jarvisActive && fg.camera) {
         const camera = fg.camera();
         if (camera) {
           angle += rotateSpeed;
-          const r = Math.hypot(camera.position.x, camera.position.z) || 520;
+          const r = Math.hypot(camera.position.x, camera.position.z) || 480;
           camera.position.x = r * Math.cos(angle);
           camera.position.z = r * Math.sin(angle);
           camera.lookAt(0, 0, 0);
@@ -339,7 +362,7 @@ export default function GraphPage() {
     return () => cancelAnimationFrame(animationFrameId);
   }, [is3D, autoRotate, jarvisActive]);
 
-  // Node 3D: Bulatan clean modern dengan sinar / outer halo glow
+  // Node 3D: Bulatan Sphere Bersih dengan Sinar Outer Glow Tipis
   const nodeThreeObject = useCallback((node: any) => {
     const isEntity = node.type === "entity";
     const deg = degree.get(node.id) ?? 0;
@@ -348,24 +371,24 @@ export default function GraphPage() {
 
     const group = new THREE.Group();
 
-    // 1. Bulatan Inti (Sphere bersih dengan warna solid + emissive)
+    // 1. Bulatan Inti (Solid Clean Sphere dengan aksen Emissive)
     const radius = isEntity
-      ? 4.5 + Math.min(7, Math.sqrt(deg) * 1.6)
-      : 2.2 + Math.min(3, (node.content?.length || 0) * 0.006);
+      ? 4.2 + Math.min(6, Math.sqrt(deg) * 1.5)
+      : 2.2 + Math.min(2.8, (node.content?.length || 0) * 0.006);
 
     const sphereGeom = new THREE.SphereGeometry(radius, 24, 24);
     const sphereMat = new THREE.MeshStandardMaterial({
       color: color,
       emissive: color,
-      emissiveIntensity: isEntity ? 0.8 : 0.45,
+      emissiveIntensity: isEntity ? 0.85 : 0.4,
       roughness: 0.3,
       metalness: 0.2,
     });
     const coreMesh = new THREE.Mesh(sphereGeom, sphereMat);
     group.add(coreMesh);
 
-    // 2. Sinar / Glow Luar (Aura bercahaya tipis sebagai pembeda)
-    const glowRadius = radius * (isEntity ? 2.2 : 1.6);
+    // 2. Sinar / Halo Cahaya Lembut (Additive Blending)
+    const glowRadius = radius * (isEntity ? 2.1 : 1.6);
     const glowGeom = new THREE.SphereGeometry(glowRadius, 16, 16);
     const glowMat = new THREE.MeshBasicMaterial({
       color: color,
@@ -436,7 +459,7 @@ export default function GraphPage() {
       fgRef.current.centerAt(node.x, node.y, 600);
       fgRef.current.zoom(1.8, 600);
     } else if (is3D && fg3dRef.current && Number.isFinite(node.x)) {
-      const distance = 140;
+      const distance = 120;
       const distRatio = 1 + distance / Math.hypot(node.x, node.y || 0, node.z || 0);
       fg3dRef.current.cameraPosition(
         { x: node.x * distRatio, y: (node.y || 0) * distRatio, z: (node.z || 0) * distRatio },
@@ -462,7 +485,7 @@ export default function GraphPage() {
       fgRef.current.zoom(0.85, duration);
     } else if (is3D && fg3dRef.current) {
       fg3dRef.current.cameraPosition(
-        { x: 0, y: 160, z: 500 },
+        { x: 0, y: 120, z: 460 },
         { x: 0, y: 0, z: 0 },
         duration
       );
@@ -544,11 +567,11 @@ export default function GraphPage() {
           <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">
-                Graph Memori {is3D ? "3D" : "2D"}
+                Graph Memori {is3D ? "3D Sphere" : "2D"}
               </h1>
               <p className="mt-1 text-sm text-tx-3">
                 {is3D
-                  ? "Visualisasi 3D volumetrik (X, Y, Z): Node memori melayang bebas dengan pancaran sinar relasi."
+                  ? "Kluster 3D Bola (Globe Network): Memori tersusun melingkar volumetrik di ruang 3D."
                   : "Entri & entitas graph berdasarkan tautan, dengan entitas paling sibuk di tengah. Klik node untuk detail."}
               </p>
             </div>
@@ -563,7 +586,7 @@ export default function GraphPage() {
               {/* Toggle 2D / 3D */}
               <button
                 onClick={() => setIs3D((v) => !v)}
-                title="Ganti tampilan antara 2D Flat dan 3D Space (XYZ)"
+                title="Ganti tampilan antara 2D Flat dan 3D Sphere Network"
                 className={cn(
                   "raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-all",
                   is3D
@@ -572,7 +595,7 @@ export default function GraphPage() {
                 )}
               >
                 {is3D ? <Box className="size-3 text-violet-400" /> : <Layers className="size-3" />}
-                <span>{is3D ? "Mode 3D Space" : "Mode 2D Flat"}</span>
+                <span>{is3D ? "Mode 3D Bola" : "Mode 2D Flat"}</span>
               </button>
 
               {/* Jarvis Mode Controller (Aktif di 3D) */}
