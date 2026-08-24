@@ -41,11 +41,11 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 const LEGEND_ROWS = [
-  { key: "entity", label: "entitas galaxy (core)", note: "bintang pulsar" },
-  { key: "seed", label: KIND_LABEL.seed, note: "nebula cyan" },
-  { key: "active", label: KIND_LABEL.active, note: "bintang hijau zamrud" },
-  { key: "evicted", label: KIND_LABEL.evicted, note: "bintang kuning emas" },
-  { key: "archive", label: KIND_LABEL.archive, note: "debu bintang perak" },
+  { key: "entity", label: "entitas", note: "bercahaya ungu" },
+  { key: "seed", label: KIND_LABEL.seed, note: "biru" },
+  { key: "active", label: KIND_LABEL.active, note: "hijau" },
+  { key: "evicted", label: KIND_LABEL.evicted, note: "kuning" },
+  { key: "archive", label: KIND_LABEL.archive, note: "abu-abu" },
 ] as const;
 
 const PHYSICS_KEYS = ["x", "y", "z", "vx", "vy", "vz", "fx", "fy", "fz", "index"];
@@ -105,8 +105,8 @@ type CanvasPalette = {
 
 const CANVAS: Record<"dark" | "light", CanvasPalette> = {
   dark: {
-    kind: { seed: "#38bdf8", active: "#34d399", evicted: "#fbbf24", archive: "#94a3b8" },
-    entity: "#c084fc",
+    kind: { seed: "#5aa9f8", active: "#3ad39b", evicted: "#f0b74a", archive: "#8b8f9c" },
+    entity: "#b98cf5",
     fallback: "#8b8f9c",
     linkIdle: "rgba(255,255,255,0.10)",
     linkOn: "rgba(255,255,255,0.85)",
@@ -128,15 +128,6 @@ const CANVAS: Record<"dark" | "light", CanvasPalette> = {
     labelBg: "rgba(255,255,255,0.86)",
     focusRing: "#14182a",
   },
-};
-
-const GALAXY_COLORS: Record<string, string> = {
-  entity: "#c084fc",
-  seed: "#38bdf8",
-  active: "#34d399",
-  evicted: "#fbbf24",
-  archive: "#94a3b8",
-  fallback: "#64748b",
 };
 
 function fmtDate(iso?: string) {
@@ -304,65 +295,27 @@ export default function GraphPage() {
     forcesConfigured.current = true;
   }, [data, is3D]);
 
-  // Konfigurasi Gaya Fisika 3D Galaxy (Full 3D X, Y, Z volumetric space)
+  // Konfigurasi Gaya Fisika 3D Volumetrik (Bebas di ruang X, Y, Z)
   useEffect(() => {
     if (!is3D || !fg3dRef.current) return;
     const fg = fg3dRef.current;
     
-    // Beri tolakan 3D kuat dan jarak link 3D yang lega
     const charge = fg.d3Force?.("charge");
     if (charge?.strength) {
-      charge.strength(-280);
-      charge.distanceMax?.(900);
+      charge.strength(-260);
+      charge.distanceMax?.(850);
     }
     const link = fg.d3Force?.("link");
     if (link?.distance) {
-      link.distance(120);
+      link.distance(110);
     }
     fg.d3ReheatSimulation?.();
   }, [is3D]);
 
-  // Setup 3D Galaxy Three.js scene (Starfield & Auto-orbit)
+  // Auto rotation kamera 3D
   useEffect(() => {
     if (!is3D || !fg3dRef.current) return;
     const fg = fg3dRef.current;
-    const scene = fg.scene?.();
-    if (!scene) return;
-
-    const existingStarfield = scene.getObjectByName("galaxy_starfield");
-    if (!existingStarfield) {
-      const starGeometry = new THREE.BufferGeometry();
-      const starCount = 2200;
-      const starPositions = new Float32Array(starCount * 3);
-      const starColors = new Float32Array(starCount * 3);
-
-      for (let i = 0; i < starCount * 3; i += 3) {
-        const r = 700 + Math.random() * 1100;
-        const theta = Math.random() * 2 * Math.PI;
-        const phi = Math.acos(2 * Math.random() - 1);
-        starPositions[i] = r * Math.sin(phi) * Math.cos(theta);
-        starPositions[i + 1] = r * Math.sin(phi) * Math.sin(theta);
-        starPositions[i + 2] = r * Math.cos(phi);
-
-        starColors[i] = 0.5 + Math.random() * 0.5;
-        starColors[i + 1] = 0.6 + Math.random() * 0.4;
-        starColors[i + 2] = 0.9 + Math.random() * 0.1;
-      }
-
-      starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-      starGeometry.setAttribute("color", new THREE.BufferAttribute(starColors, 3));
-
-      const starMaterial = new THREE.PointsMaterial({
-        size: 2.5,
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.7,
-      });
-
-      const starField = new THREE.Points(starGeometry, starMaterial);
-      starField.name = "galaxy_starfield";
-      scene.add(starField);
-    }
 
     let animationFrameId: number;
     let angle = 0;
@@ -386,61 +339,46 @@ export default function GraphPage() {
     return () => cancelAnimationFrame(animationFrameId);
   }, [is3D, autoRotate, jarvisActive]);
 
-  // Glowing 3D Node Object (Pulsar / Luminous Glow)
+  // Node 3D: Bulatan clean modern dengan sinar / outer halo glow
   const nodeThreeObject = useCallback((node: any) => {
     const isEntity = node.type === "entity";
     const deg = degree.get(node.id) ?? 0;
-    const baseColorHex = isEntity ? GALAXY_COLORS.entity : (GALAXY_COLORS[node.kind] ?? GALAXY_COLORS.fallback);
+    const baseColorHex = isEntity ? C.entity : (C.kind[node.kind] ?? C.fallback);
     const color = new THREE.Color(baseColorHex);
 
     const group = new THREE.Group();
 
-    // 1. Core Sphere (Titik Bintang / Cahaya)
+    // 1. Bulatan Inti (Sphere bersih dengan warna solid + emissive)
     const radius = isEntity
-      ? 5 + Math.min(8, Math.sqrt(deg) * 1.8)
-      : 2.4 + Math.min(3.5, (node.content?.length || 0) * 0.008);
+      ? 4.5 + Math.min(7, Math.sqrt(deg) * 1.6)
+      : 2.2 + Math.min(3, (node.content?.length || 0) * 0.006);
 
     const sphereGeom = new THREE.SphereGeometry(radius, 24, 24);
     const sphereMat = new THREE.MeshStandardMaterial({
       color: color,
       emissive: color,
-      emissiveIntensity: isEntity ? 1.0 : 0.7,
-      roughness: 0.2,
-      metalness: 0.8,
+      emissiveIntensity: isEntity ? 0.8 : 0.45,
+      roughness: 0.3,
+      metalness: 0.2,
     });
     const coreMesh = new THREE.Mesh(sphereGeom, sphereMat);
     group.add(coreMesh);
 
-    // 2. Glowing Halo (Atmosphere Mesh dengan Blending Additive)
-    const glowRadius = radius * (isEntity ? 2.5 : 1.8);
+    // 2. Sinar / Glow Luar (Aura bercahaya tipis sebagai pembeda)
+    const glowRadius = radius * (isEntity ? 2.2 : 1.6);
     const glowGeom = new THREE.SphereGeometry(glowRadius, 16, 16);
     const glowMat = new THREE.MeshBasicMaterial({
       color: color,
       transparent: true,
-      opacity: isEntity ? 0.45 : 0.25,
+      opacity: isEntity ? 0.35 : 0.18,
       blending: THREE.AdditiveBlending,
       side: THREE.BackSide,
     });
     const glowMesh = new THREE.Mesh(glowGeom, glowMat);
     group.add(glowMesh);
 
-    // 3. Ring Orbital
-    if (isEntity && deg > 3) {
-      const ringGeom = new THREE.RingGeometry(radius * 1.8, radius * 2.1, 32);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: color,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.35,
-        blending: THREE.AdditiveBlending,
-      });
-      const ringMesh = new THREE.Mesh(ringGeom, ringMat);
-      ringMesh.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
-      group.add(ringMesh);
-    }
-
     return group;
-  }, [degree]);
+  }, [degree, C]);
 
   const nodeById = useMemo(
     () => new Map(graphData.nodes.map((n) => [n.id, n])),
@@ -524,7 +462,7 @@ export default function GraphPage() {
       fgRef.current.zoom(0.85, duration);
     } else if (is3D && fg3dRef.current) {
       fg3dRef.current.cameraPosition(
-        { x: 0, y: 180, z: 520 },
+        { x: 0, y: 160, z: 500 },
         { x: 0, y: 0, z: 0 },
         duration
       );
@@ -606,11 +544,11 @@ export default function GraphPage() {
           <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">
-                Graph Memori {is3D ? "3D Galaxy" : "2D"}
+                Graph Memori {is3D ? "3D" : "2D"}
               </h1>
               <p className="mt-1 text-sm text-tx-3">
                 {is3D
-                  ? "Peta kosmik 3D volumetrik (XYZ): Memori tersebar acak bebas secara 3D dengan relasi dinamis."
+                  ? "Visualisasi 3D volumetrik (X, Y, Z): Node memori melayang bebas dengan pancaran sinar relasi."
                   : "Entri & entitas graph berdasarkan tautan, dengan entitas paling sibuk di tengah. Klik node untuk detail."}
               </p>
             </div>
@@ -622,10 +560,10 @@ export default function GraphPage() {
                 </Pill>
               )}
 
-              {/* Toggle 2D / 3D Galaxy */}
+              {/* Toggle 2D / 3D */}
               <button
                 onClick={() => setIs3D((v) => !v)}
-                title="Ganti tampilan antara 2D Flat dan 3D Galaxy Space (XYZ)"
+                title="Ganti tampilan antara 2D Flat dan 3D Space (XYZ)"
                 className={cn(
                   "raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-all",
                   is3D
@@ -633,8 +571,8 @@ export default function GraphPage() {
                     : "text-tx-2 hover:text-tx-1"
                 )}
               >
-                {is3D ? <Orbit className="size-3 text-violet-400" /> : <Layers className="size-3" />}
-                <span>{is3D ? "Mode 3D Galaxy (XYZ)" : "Mode 2D Flat"}</span>
+                {is3D ? <Box className="size-3 text-violet-400" /> : <Layers className="size-3" />}
+                <span>{is3D ? "Mode 3D Space" : "Mode 2D Flat"}</span>
               </button>
 
               {/* Jarvis Mode Controller (Aktif di 3D) */}
@@ -651,7 +589,7 @@ export default function GraphPage() {
                       "raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-all",
                       autoRotate ? "text-sky-400 border-sky-500/30 bg-sky-500/10" : "text-tx-3 hover:text-tx-2"
                     )}
-                    title="Putar galaxy secara otomatis"
+                    title="Putar graph 3D secara otomatis"
                   >
                     <Compass className={cn("size-3", autoRotate && "animate-spin")} style={{ animationDuration: "8s" }} />
                     <span>{autoRotate ? "Orbit Aktif" : "Orbit Diam"}</span>
@@ -689,12 +627,12 @@ export default function GraphPage() {
           </header>
 
           <div className="grid gap-4 lg:h-[calc(100vh-11rem)] lg:grid-cols-[1fr_340px]">
-            <Panel className="well relative h-[62vh] min-h-[340px] overflow-hidden border border-line p-0 lg:h-auto lg:min-h-0 bg-[#05070e]">
+            <Panel className="well relative h-[62vh] min-h-[340px] overflow-hidden border border-line p-0 lg:h-auto lg:min-h-0">
               <div ref={wrapRef} aria-hidden className="pointer-events-none absolute inset-0" />
 
               {/* Search Overlay */}
               <div className="absolute left-3 right-3 top-3 z-20 sm:left-4 sm:top-4 sm:right-auto sm:w-64">
-                <div className="panel flex items-center gap-2 rounded-xl px-3 py-2 bg-zinc-950/80 border border-zinc-800 backdrop-blur-md">
+                <div className="panel flex items-center gap-2 rounded-xl px-3 py-2">
                   <Search className="size-3.5 shrink-0 text-tx-3" />
                   <input
                     value={q}
@@ -704,7 +642,7 @@ export default function GraphPage() {
                   />
                 </div>
                 {suggestions.length > 0 && (
-                  <div className="panel mt-1.5 divide-y divide-line overflow-hidden rounded-xl bg-zinc-950/95 border border-zinc-800 backdrop-blur-md">
+                  <div className="panel mt-1.5 divide-y divide-line overflow-hidden rounded-xl">
                     {suggestions.map((s) => (
                       <button
                         key={s.id}
@@ -722,7 +660,7 @@ export default function GraphPage() {
                 )}
               </div>
 
-              {/* 3D Force Graph Galaxy Render */}
+              {/* 3D Force Graph Render */}
               {is3D ? (
                 <ForceGraph3D
                   ref={fg3dRef}
@@ -731,20 +669,23 @@ export default function GraphPage() {
                   graphData={displayGraphData}
                   nodeThreeObject={nodeThreeObject}
                   nodeLabel={(node: any) => `
-                    <div style="background: rgba(10,12,24,0.85); border: 1px solid rgba(147,197,253,0.3); padding: 6px 10px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #f1f5f9; backdrop-filter: blur(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
-                      <div style="font-weight: bold; color: ${node.type === 'entity' ? '#c084fc' : '#38bdf8'};">${node.label}</div>
-                      <div style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">${node.type === 'entity' ? 'PULSAR CORE' : (node.kind || 'STAR')}</div>
+                    <div style="background: ${isDark ? 'rgba(18,20,26,0.85)' : 'rgba(255,255,255,0.9)'}; border: 1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}; padding: 4px 8px; border-radius: 6px; font-family: system-ui; font-size: 11px; color: ${isDark ? '#f1f5f9' : '#0f172a'}; backdrop-filter: blur(4px);">
+                      <div style="font-weight: 600; color: ${node.type === 'entity' ? C.entity : (C.kind[node.kind] ?? C.fallback)};">${node.label}</div>
+                      <div style="font-size: 9px; color: #64748b; text-transform: uppercase;">${node.type === 'entity' ? 'ENTITAS' : (node.kind || 'MEMORI')}</div>
                     </div>
                   `}
-                  linkColor={() => "rgba(147, 197, 253, 0.18)"}
-                  linkWidth={1.2}
+                  linkColor={() => (isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)")}
+                  linkWidth={1}
                   linkDirectionalParticles={2}
-                  linkDirectionalParticleWidth={2.4}
-                  linkDirectionalParticleSpeed={0.006}
-                  linkDirectionalParticleColor={() => "#a78bfa"}
+                  linkDirectionalParticleWidth={2}
+                  linkDirectionalParticleSpeed={0.005}
+                  linkDirectionalParticleColor={(l: any) => {
+                    const t = typeof l.target === "object" ? l.target : null;
+                    return t?.type === "entity" ? C.entity : C.fallback;
+                  }}
                   onNodeClick={(node: any) => focusNode(node)}
                   onNodeHover={(node: any) => setHoverNode(node)}
-                  backgroundColor="#05070e"
+                  backgroundColor={isDark ? "#090a0f" : "#f4f5f8"}
                   showNavInfo={false}
                 />
               ) : (
@@ -938,7 +879,7 @@ export default function GraphPage() {
 
               {/* Legenda */}
               <Panel className="text-xs">
-                <span className="font-semibold text-tx-1 block mb-2">Filter Label &amp; Spektrum</span>
+                <span className="font-semibold text-tx-1 block mb-2">Filter Label Canvas</span>
                 <div className="space-y-1.5">
                   {LEGEND_ROWS.map((row) => (
                     <label
