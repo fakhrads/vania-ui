@@ -41,11 +41,11 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 const LEGEND_ROWS = [
-  { key: "entity", label: "entitas (pusat)", note: "pulsar bercahaya" },
+  { key: "entity", label: "entitas galaxy (core)", note: "bintang pulsar" },
   { key: "seed", label: KIND_LABEL.seed, note: "nebula cyan" },
-  { key: "active", label: KIND_LABEL.active, note: "emerald glow" },
-  { key: "evicted", label: KIND_LABEL.evicted, note: "amber glow" },
-  { key: "archive", label: KIND_LABEL.archive, note: "silver glow" },
+  { key: "active", label: KIND_LABEL.active, note: "bintang hijau zamrud" },
+  { key: "evicted", label: KIND_LABEL.evicted, note: "bintang kuning emas" },
+  { key: "archive", label: KIND_LABEL.archive, note: "debu bintang perak" },
 ] as const;
 
 const PHYSICS_KEYS = ["x", "y", "z", "vx", "vy", "vz", "fx", "fy", "fz", "index"];
@@ -215,72 +215,61 @@ export default function GraphPage() {
   const draggingRef = useRef<string | null>(null);
 
   const [graphData, setGraphData] = useState<{ nodes: any[]; links: any[] }>({ nodes: [], links: [] });
+
   useEffect(() => {
     if (!data) return;
     setGraphData((prev) => {
       const prevById = new Map(prev.nodes.map((n) => [n.id, n]));
       const cache = getPositionCache();
-      for (const n of prev.nodes) {
-        if (looseRef.current.has(n.id)) continue;
-        if (typeof n.x === "number" && typeof n.fx !== "number") {
-          n.fx = n.x;
-          n.fy = n.y;
+
+      // 2D: bekukan node lama
+      if (!is3D) {
+        for (const n of prev.nodes) {
+          if (looseRef.current.has(n.id)) continue;
+          if (typeof n.x === "number" && typeof n.fx !== "number") {
+            n.fx = n.x;
+            n.fy = n.y;
+          }
         }
       }
 
-      // Distribusi Bola / Spherical Galaxy 3D
-      const total = data.nodes.length;
-      const nextNodes = data.nodes.map((incoming, i) => {
+      const nextNodes = data.nodes.map((incoming) => {
         const existing = prevById.get(incoming.id);
         if (existing) {
           Object.assign(existing, incoming);
+          if (is3D) {
+            // Unpin di 3D agar fisika 3D bebas bergerak di ruang X, Y, Z
+            delete existing.fx;
+            delete existing.fy;
+            delete existing.fz;
+          }
           return existing;
         }
-        const remembered = cache[incoming.id];
-        if (remembered) {
-          return { ...incoming, x: remembered.x, y: remembered.y, fx: remembered.x, fy: remembered.y };
-        }
 
-        // TATA LETAK 3D BOLA (Spherical / Fibonacci Sphere Shells)
-        const isEntity = incoming.type === "entity";
-        if (isEntity) {
-          // Entitas di bola dalam (Inner Core Sphere, radius 60-110)
-          const phi = Math.acos(1 - 2 * (i + 0.5) / Math.max(1, total));
-          const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-          const radius = 70 + (i % 3) * 20;
-          return {
-            ...incoming,
-            x: radius * Math.sin(phi) * Math.cos(theta),
-            y: radius * Math.sin(phi) * Math.sin(theta),
-            z: radius * Math.cos(phi),
-          };
-        } else {
-          // Entri memori di bola luar (Outer Galaxy Shell, radius 180-320)
-          const phi = Math.acos(1 - 2 * (i + 0.5) / Math.max(1, total));
-          const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-          const radius = 190 + (i % 5) * 25 + (Math.random() - 0.5) * 20;
-          return {
-            ...incoming,
-            x: radius * Math.sin(phi) * Math.cos(theta),
-            y: radius * Math.sin(phi) * Math.sin(theta),
-            z: radius * Math.cos(phi),
-          };
+        if (!is3D) {
+          const remembered = cache[incoming.id];
+          if (remembered) {
+            return { ...incoming, x: remembered.x, y: remembered.y, fx: remembered.x, fy: remembered.y };
+          }
         }
+        return { ...incoming };
       });
 
-      const nextCache: Record<string, { x: number; y: number }> = { ...cache };
-      for (const n of nextNodes) {
-        if (typeof n.fx === "number") nextCache[n.id] = { x: n.fx, y: n.fy };
+      if (!is3D) {
+        const nextCache: Record<string, { x: number; y: number }> = { ...cache };
+        for (const n of nextNodes) {
+          if (typeof n.fx === "number") nextCache[n.id] = { x: n.fx, y: n.fy };
+        }
+        positionCacheRef.current = nextCache;
+        try {
+          localStorage.setItem(POSITION_CACHE_KEY, JSON.stringify(nextCache));
+        } catch {}
       }
-      positionCacheRef.current = nextCache;
-      try {
-        localStorage.setItem(POSITION_CACHE_KEY, JSON.stringify(nextCache));
-      } catch {}
 
       const nextLinks = data.links.map((l) => ({ ...l }));
       return { nodes: nextNodes, links: nextLinks };
     });
-  }, [data]);
+  }, [data, is3D]);
 
   const degree = useMemo(() => {
     const m = new Map<string, number>();
@@ -300,7 +289,7 @@ export default function GraphPage() {
 
   const forcesConfigured = useRef(false);
   useEffect(() => {
-    if (!data || !fgRef.current || forcesConfigured.current) return;
+    if (!data || !fgRef.current || forcesConfigured.current || is3D) return;
     const charge = fgRef.current.d3Force?.("charge");
     if (charge?.strength) {
       charge.strength(-320);
@@ -315,6 +304,24 @@ export default function GraphPage() {
     forcesConfigured.current = true;
   }, [data, is3D]);
 
+  // Konfigurasi Gaya Fisika 3D Galaxy (Full 3D X, Y, Z volumetric space)
+  useEffect(() => {
+    if (!is3D || !fg3dRef.current) return;
+    const fg = fg3dRef.current;
+    
+    // Beri tolakan 3D kuat dan jarak link 3D yang lega
+    const charge = fg.d3Force?.("charge");
+    if (charge?.strength) {
+      charge.strength(-280);
+      charge.distanceMax?.(900);
+    }
+    const link = fg.d3Force?.("link");
+    if (link?.distance) {
+      link.distance(120);
+    }
+    fg.d3ReheatSimulation?.();
+  }, [is3D]);
+
   // Setup 3D Galaxy Three.js scene (Starfield & Auto-orbit)
   useEffect(() => {
     if (!is3D || !fg3dRef.current) return;
@@ -322,16 +329,15 @@ export default function GraphPage() {
     const scene = fg.scene?.();
     if (!scene) return;
 
-    // Tambah Starfield Background
     const existingStarfield = scene.getObjectByName("galaxy_starfield");
     if (!existingStarfield) {
       const starGeometry = new THREE.BufferGeometry();
-      const starCount = 2000;
+      const starCount = 2200;
       const starPositions = new Float32Array(starCount * 3);
       const starColors = new Float32Array(starCount * 3);
 
       for (let i = 0; i < starCount * 3; i += 3) {
-        const r = 700 + Math.random() * 1000;
+        const r = 700 + Math.random() * 1100;
         const theta = Math.random() * 2 * Math.PI;
         const phi = Math.acos(2 * Math.random() - 1);
         starPositions[i] = r * Math.sin(phi) * Math.cos(theta);
@@ -389,7 +395,7 @@ export default function GraphPage() {
 
     const group = new THREE.Group();
 
-    // 1. Core Sphere
+    // 1. Core Sphere (Titik Bintang / Cahaya)
     const radius = isEntity
       ? 5 + Math.min(8, Math.sqrt(deg) * 1.8)
       : 2.4 + Math.min(3.5, (node.content?.length || 0) * 0.008);
@@ -405,7 +411,7 @@ export default function GraphPage() {
     const coreMesh = new THREE.Mesh(sphereGeom, sphereMat);
     group.add(coreMesh);
 
-    // 2. Glowing Halo (Atmosphere Mesh)
+    // 2. Glowing Halo (Atmosphere Mesh dengan Blending Additive)
     const glowRadius = radius * (isEntity ? 2.5 : 1.8);
     const glowGeom = new THREE.SphereGeometry(glowRadius, 16, 16);
     const glowMat = new THREE.MeshBasicMaterial({
@@ -600,11 +606,11 @@ export default function GraphPage() {
           <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">
-                Graph Memori {is3D ? "3D Spherical Galaxy" : "2D"}
+                Graph Memori {is3D ? "3D Galaxy" : "2D"}
               </h1>
               <p className="mt-1 text-sm text-tx-3">
                 {is3D
-                  ? "Tata letak 3D Bola Galaksi: Memori tersusun melingkar di ruang 3D dengan entitas inti di tengah."
+                  ? "Peta kosmik 3D volumetrik (XYZ): Memori tersebar acak bebas secara 3D dengan relasi dinamis."
                   : "Entri & entitas graph berdasarkan tautan, dengan entitas paling sibuk di tengah. Klik node untuk detail."}
               </p>
             </div>
@@ -619,7 +625,7 @@ export default function GraphPage() {
               {/* Toggle 2D / 3D Galaxy */}
               <button
                 onClick={() => setIs3D((v) => !v)}
-                title="Ganti tampilan antara 2D Flat dan 3D Spherical Galaxy"
+                title="Ganti tampilan antara 2D Flat dan 3D Galaxy Space (XYZ)"
                 className={cn(
                   "raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-all",
                   is3D
@@ -628,7 +634,7 @@ export default function GraphPage() {
                 )}
               >
                 {is3D ? <Orbit className="size-3 text-violet-400" /> : <Layers className="size-3" />}
-                <span>{is3D ? "Mode 3D Bola Galaksi" : "Mode 2D Flat"}</span>
+                <span>{is3D ? "Mode 3D Galaxy (XYZ)" : "Mode 2D Flat"}</span>
               </button>
 
               {/* Jarvis Mode Controller (Aktif di 3D) */}
