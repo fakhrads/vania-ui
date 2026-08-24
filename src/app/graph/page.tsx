@@ -6,17 +6,12 @@ import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
 import { Panel, Pill, StatusDot, useLive, type Tone } from "@/components/monitor";
 import { useTheme } from "@/lib/theme";
-import {
-  Lock, Globe, RefreshCw, Search, Flame, X, Focus, Link2, Check, Crosshair, Shuffle,
-  Box, Layers
-} from "lucide-react";
+import { Lock, Globe, RefreshCw, Search, Flame, X, Focus, Link2, Check, Crosshair, Shuffle } from "lucide-react";
 import { forceCollide } from "d3-force-3d";
 import { cn } from "@/lib/utils";
-import { JarvisHandController, type HandGestureState } from "@/components/jarvis-hand-controller";
 
-// Dynamic import with SSR false
+// Canvas butuh `window` — matikan SSR, kalau tidak build gagal di server.
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
-const ForceGraph3D = dynamic(() => import("react-force-graph-3d"), { ssr: false });
 
 type Node = {
   id: string;
@@ -29,8 +24,7 @@ type Node = {
   createdAt?: string;
   updatedAt?: string;
   entries?: { id: string; label: string }[];
-  x?: number; y?: number; z?: number;
-  fx?: number; fy?: number; fz?: number;
+  x?: number; y?: number;
 };
 type Link = { source: string; target: string };
 type Graph = { nodes: Node[]; links: Link[]; stats: { entries: number; entities: number; edges: number } };
@@ -39,6 +33,14 @@ const KIND_LABEL: Record<string, string> = {
   seed: "fakta inti", active: "aktif", evicted: "pernah aktif", archive: "arsip",
 };
 
+/**
+ * Baris legenda — sekaligus saklar "tampilkan nama" per kategori.
+ *
+ * Nama entri TIDAK digambar secara default: ada ratusan entri, kalau semua
+ * namanya nyala sekaligus canvas langsung jadi tembok teks. Jadi tiap
+ * kategori dinyalakan sendiri-sendiri lewat legenda, dan pilihannya disimpan
+ * per browser (localStorage) biar tidak perlu diklik ulang tiap buka.
+ */
 const LEGEND_ROWS = [
   { key: "entity", label: "entitas", note: "ukuran = jumlah tautan" },
   { key: "seed", label: KIND_LABEL.seed, note: "" },
@@ -47,12 +49,21 @@ const LEGEND_ROWS = [
   { key: "archive", label: KIND_LABEL.archive, note: "" },
 ] as const;
 
-const PHYSICS_KEYS = ["x", "y", "z", "vx", "vy", "vz", "fx", "fy", "fz", "index"];
+/** Properti yang ditulis d3/force-graph langsung ke objek node. Dibuang saat
+ *  tata ulang supaya simulasi benar-benar mulai dari nol. */
+const PHYSICS_KEYS = ["x", "y", "vx", "vy", "fx", "fy", "index"];
 
 const LABEL_KEY = "vania-graph-labels-v1";
 const LABEL_DEFAULT: Record<string, boolean> = {
   entity: true, seed: false, active: false, evicted: false, archive: false,
 };
+
+/* ── Saklar label sebagai store di luar React ─────────────────────────────
+   Pilihannya hidup di localStorage — sistem eksternal, persis seperti
+   pilihan tema di lib/theme.tsx, jadi ditangani dengan cara yang sama.
+   React memakai snapshot server saat hydrate lalu merender ulang dengan
+   nilai klien: tidak ada ketidakcocokan hydration, dan tidak perlu
+   setState di dalam efek buat "menyusul" isi localStorage.               */
 
 let labelSnapshot: Record<string, boolean> = LABEL_DEFAULT;
 const labelListeners = new Set<() => void>();
@@ -62,10 +73,13 @@ function readLabels(): Record<string, boolean> {
     const raw = localStorage.getItem(LABEL_KEY);
     if (raw) {
       const next = { ...LABEL_DEFAULT, ...JSON.parse(raw) };
+      // useSyncExternalStore membandingkan snapshot dengan Object.is —
+      // objek baru tiap render bikin render tak berujung. Ganti referensi
+      // hanya kalau isinya memang berubah.
       if (JSON.stringify(next) !== JSON.stringify(labelSnapshot)) labelSnapshot = next;
     }
   } catch {
-    // storage disabled
+    // storage disabled -> tetap pakai snapshot terakhir
   }
   return labelSnapshot;
 }
@@ -83,14 +97,27 @@ function writeLabels(next: Record<string, boolean>) {
   labelSnapshot = next;
   try {
     localStorage.setItem(LABEL_KEY, JSON.stringify(next));
-  } catch {}
+  } catch {
+    // gagal simpan -> pilihan tetap jalan di sesi ini
+  }
   for (const l of labelListeners) l();
 }
 
+/** Nama entri itu potongan 70 karakter dari isinya — kepanjangan buat
+ *  dicetak massal di canvas. Node yang lagi difokus tetap pakai versi
+ *  panjang; sisanya dipotong biar labelnya tidak saling tindih. */
 function shortLabel(text: string, max = 30) {
   return text.length > max ? text.slice(0, max - 1).trimEnd() + "…" : text;
 }
 
+/**
+ * Palet canvas — dua set nilai harfiah, bukan CSS variable.
+ *
+ * Graph digambar ke <canvas> lewat ctx.fillStyle/strokeStyle, dan canvas
+ * tidak bisa membaca custom property. Jadi setiap warna di sini harus
+ * ditulis dua kali dan dipilih di runtime lewat tema aktif; kalau tidak,
+ * graph jadi tak terbaca begitu pengguna pindah ke tema terang.
+ */
 type CanvasPalette = {
   kind: Record<string, string>;
   entity: string;
@@ -136,6 +163,11 @@ function fmtDate(iso?: string) {
   return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 }
 
+/** Jari-jari node: entitas membesar mengikuti derajat (hub); entri
+ * membesar mengikuti PANJANG isinya (konteks lebih tebal → bulatan lebih
+ * besar) plus sedikit dari derajat, supaya dua sinyal itu kelihatan sama-
+ * sama tanpa satu menenggelamkan yang lain. Dipakai sama persis di render
+ * dan di area klik (nodePointerAreaPaint) — kalau beda, klik meleset. */
 function nodeRadius(node: any, deg: number) {
   if (node.type === "entity") {
     return 4.5 + Math.min(9, Math.sqrt(deg) * 1.9);
@@ -148,9 +180,6 @@ export default function GraphPage() {
   const { isDark } = useTheme();
   const C = isDark ? CANVAS.dark : CANVAS.light;
   const [showArchive, setShowArchive] = useState(false);
-  const [is3D, setIs3D] = useState(false);
-  const [jarvisActive, setJarvisActive] = useState(false);
-
   const { data, err, refresh } = useLive<Graph>(
     `/api/graph${showArchive ? "?all=1" : ""}`, 60000
   );
@@ -158,9 +187,17 @@ export default function GraphPage() {
   const [hoverNode, setHoverNode] = useState<Node | null>(null);
   const [q, setQ] = useState("");
   const fgRef = useRef<any>(null);
-  const fg3dRef = useRef<any>(null);
   const didInitialFit = useRef(false);
 
+  /**
+   * Ukuran canvas diambil dari panelnya, bukan dibiarkan default.
+   *
+   * Tanpa prop width/height, ForceGraph2D memakai seukuran WINDOW — padahal
+   * panelnya cuma sebagian layar dan ber-overflow-hidden. Akibatnya titik
+   * tengah canvas jauh di kanan-bawah titik tengah kotak yang kelihatan,
+   * jadi centerAt/zoomToFit selalu "meleset" ke kanan bawah walau angkanya
+   * benar. Diukur pakai ResizeObserver supaya ikut resize window & sidebar.
+   */
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   useEffect(() => {
@@ -169,6 +206,8 @@ export default function GraphPage() {
     const ro = new ResizeObserver(([entry]) => {
       const w = Math.round(entry.contentRect.width);
       const h = Math.round(entry.contentRect.height);
+      // ResizeObserver menembak juga saat ukurannya sebenarnya tidak
+      // berubah; jangan bikin objek state baru buat nilai yang sama.
       setSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
     });
     ro.observe(el);
@@ -182,6 +221,23 @@ export default function GraphPage() {
     writeLabels({ ...labelSnapshot, [k]: !labelSnapshot[k] });
   }, []);
 
+  // Graph incremental, bukan rebuild total tiap poll. Node yang udah ada
+  // di-BEKUKAN (fx/fy = posisi sekarang) begitu data baru datang, jadi dia
+  // gak akan pernah kegeser lagi walau simulasi fisika jalan lagi buat
+  // node baru. Node yang genuinely baru dibiarin lepas (gak di-fx/fy) —
+  // itu yang bikin dia keliatan "ketarik" ke node yang dia sambungin,
+  // karena link-force fisika narik dia ke posisi seharusnya relatif ke
+  // tetangga yang udah beku. Identitas objek node LAMA dipertahankan
+  // (bukan literal baru) karena force-graph nyimpen x/y/vx/vy langsung di
+  // objek itu — ganti objek = fisika mulai dari nol lagi buat node itu.
+  // Posisi node dipersist ke localStorage, per browser — jadi begitu
+  // halaman dibuka ulang (bukan cuma poll di sesi yang sama), node yang
+  // udah pernah keliatan sebelumnya langsung nongol di posisi lamanya,
+  // dibekukan dari frame pertama. Cuma node yang BENERAN belum pernah
+  // keliatan sama sekali di browser ini yang lepas dan animasi ketarik.
+  // v2: jarak antar-node dilonggarin — cache v1 nyimpen posisi lama yang
+  // masih dempet, bump versi biar dibuang dan semua re-layout pake force
+  // yang baru sekali ini aja (abis itu ke-cache lagi dan gak akan reset).
   const POSITION_CACHE_KEY = "vania-graph-positions-v2";
   const positionCacheRef = useRef<Record<string, { x: number; y: number }> | null>(null);
   const getPositionCache = () => {
@@ -190,7 +246,9 @@ export default function GraphPage() {
     try {
       const raw = localStorage.getItem(POSITION_CACHE_KEY);
       if (raw) cache = JSON.parse(raw);
-    } catch {}
+    } catch {
+      // private mode / storage disabled -> mulai kosong, gak fatal
+    }
     positionCacheRef.current = cache;
     return cache;
   };
@@ -199,9 +257,14 @@ export default function GraphPage() {
     cache[id] = { x, y };
     try {
       localStorage.setItem(POSITION_CACHE_KEY, JSON.stringify(cache));
-    } catch {}
+    } catch {
+      // storage penuh/disabled -> gapapa, posisi tetep kepakai di sesi ini
+    }
   };
 
+  // Node yang SEDANG dilepas dari bekuannya karena ikut tertarik saat drag.
+  // Dibekukan lagi (dan dipersist) begitu simulasi tenang — lihat
+  // onNodeDrag / onEngineStop di bawah.
   const looseRef = useRef<Set<string>>(new Set());
   const draggingRef = useRef<string | null>(null);
 
@@ -212,6 +275,8 @@ export default function GraphPage() {
       const prevById = new Map(prev.nodes.map((n) => [n.id, n]));
       const cache = getPositionCache();
       for (const n of prev.nodes) {
+        // Node yang lagi ikut tertarik drag masih meluncur — kalau poll
+        // datang di tengah animasi jangan dipaku di posisi setengah jalan.
         if (looseRef.current.has(n.id)) continue;
         if (typeof n.x === "number" && typeof n.fx !== "number") {
           n.fx = n.x;
@@ -221,14 +286,16 @@ export default function GraphPage() {
       const nextNodes = data.nodes.map((incoming) => {
         const existing = prevById.get(incoming.id);
         if (existing) {
-          Object.assign(existing, incoming);
+          Object.assign(existing, incoming); // refresh metadata, x/y/fx/fy untouched (absent dari incoming)
           return existing;
         }
         const remembered = cache[incoming.id];
         if (remembered) {
+          // Udah pernah keliatan di browser ini sebelumnya (sesi lama/reload)
+          // -> langsung taruh di posisi lama, dibekukan, TANPA animasi.
           return { ...incoming, x: remembered.x, y: remembered.y, fx: remembered.x, fy: remembered.y };
         }
-        return incoming;
+        return incoming; // beneran baru pertama kali -> lepas, ketarik fisika
       });
 
       const nextCache: Record<string, { x: number; y: number }> = { ...cache };
@@ -238,11 +305,43 @@ export default function GraphPage() {
       positionCacheRef.current = nextCache;
       try {
         localStorage.setItem(POSITION_CACHE_KEY, JSON.stringify(nextCache));
-      } catch {}
+      } catch {
+        // storage penuh/disabled -> posisi tetap kepakai di sesi ini, cuma gak persist
+      }
 
-      const nextLinks = data.links.map((l) => ({ ...l }));
+      const nextLinks = data.links.map((l) => ({ ...l })); // link gak punya posisi sendiri, aman dibuat ulang
       return { nodes: nextNodes, links: nextLinks };
     });
+  }, [data]);
+
+  // Jarak antar-node — default d3-force nge-dempetin banget buat ~300 node.
+  // Set sekali aja begitu simulasi pertama kali ada datanya; ubah param
+  // gaya TIDAK memicu re-layout paksa (node yang udah beku tetep beku).
+  // Radius node ikut derajat, dan derajat berubah tiap poll — sementara
+  // gaya fisika cuma dipasang sekali. Dibaca lewat ref biar accessor-nya
+  // selalu lihat angka terbaru tanpa perlu pasang ulang gayanya.
+  const degreeRef = useRef<Map<string, number>>(new Map());
+
+  const forcesConfigured = useRef(false);
+  useEffect(() => {
+    if (!data || !fgRef.current || forcesConfigured.current) return;
+    const charge = fgRef.current.d3Force("charge");
+    if (charge?.strength) {
+      charge.strength(-320);
+      charge.distanceMax?.(800);
+    }
+    const link = fgRef.current.d3Force("link");
+    if (link?.distance) link.distance(140);
+    // Tolak-menolak (charge) saja tidak menjamin bulatannya tidak saling
+    // tindih — dia gaya jarak jauh, bukan batas keras. forceCollide bikin
+    // tiap node punya "badan" seukuran gambarnya plus sedikit jarak aman,
+    // jadi hasil tata ulang tidak pernah numpuk. Dipakai dari d3-force-3d,
+    // paket simulasi yang sama yang dipakai force-graph di dalamnya.
+    fgRef.current.d3Force(
+      "collide",
+      forceCollide((n: any) => nodeRadius(n, degreeRef.current.get(n.id) ?? 0) + 7)
+    );
+    forcesConfigured.current = true;
   }, [data]);
 
   const degree = useMemo(() => {
@@ -256,167 +355,217 @@ export default function GraphPage() {
     return m;
   }, [graphData]);
 
-  const degreeRef = useRef<Map<string, number>>(new Map());
   useEffect(() => {
     degreeRef.current = degree;
   }, [degree]);
 
-  const forcesConfigured = useRef(false);
-  useEffect(() => {
-    if (!data || !fgRef.current || forcesConfigured.current) return;
-    const charge = fgRef.current.d3Force?.("charge");
-    if (charge?.strength) {
-      charge.strength(-320);
-      charge.distanceMax?.(800);
-    }
-    const link = fgRef.current.d3Force?.("link");
-    if (link?.distance) link.distance(140);
-    fgRef.current.d3Force?.(
-      "collide",
-      forceCollide((n: any) => nodeRadius(n, degreeRef.current.get(n.id) ?? 0) + 7)
-    );
-    forcesConfigured.current = true;
-  }, [data, is3D]);
-
   const nodeById = useMemo(
-    () => new Map(graphData.nodes.map((n) => [n.id, n])),
-    [graphData.nodes]
+    () => new Map<string, any>(graphData.nodes.map((n) => [n.id, n])),
+    [graphData]
   );
 
   const adjacency = useMemo(() => {
     const m = new Map<string, Set<string>>();
+    const add = (a: string, b: string) => {
+      if (!m.has(a)) m.set(a, new Set());
+      m.get(a)!.add(b);
+    };
     for (const l of graphData.links) {
-      const s = typeof l.source === "object" ? (l.source as any).id : l.source;
-      const t = typeof l.target === "object" ? (l.target as any).id : l.target;
-      if (!m.has(s)) m.set(s, new Set());
-      if (!m.has(t)) m.set(t, new Set());
-      m.get(s)!.add(t);
-      m.get(t)!.add(s);
+      const src = typeof l.source === "object" ? (l.source as any).id : l.source;
+      const tgt = typeof l.target === "object" ? (l.target as any).id : l.target;
+      add(src, tgt);
+      add(tgt, src);
     }
     return m;
-  }, [graphData.links]);
+  }, [graphData]);
 
-  const anchor = hoverNode || selected;
-  const [isolate, setIsolate] = useState(false);
+  const topEntities = useMemo(() => {
+    return graphData.nodes
+      .filter((n) => n.type === "entity")
+      .map((n) => ({ node: n, n: degree.get(n.id) ?? 0 }))
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 8);
+  }, [graphData, degree]);
 
+  /**
+   * Titik pandang: entitas paling sibuk, bukan tengah bounding box.
+   *
+   * Skalanya dihitung dari bounding box KLASTER hub saja (hub + tetangga
+   * langsungnya), bukan dari seluruh graph — jadi hub-nya memenuhi layar
+   * pas, tanpa angka pengali yang ditebak. Kameranya sendiri digeser tepat
+   * ke hub, bukan ke tengah bbox, supaya betul-betul entitas itu yang jadi
+   * pusat. centerAt & zoom dianimasikan barengan, sama seperti yang
+   * dilakukan zoomToFit di dalamnya.
+   */
+  const centerOnHub = useCallback((ms = 700) => {
+    const fg = fgRef.current;
+    if (!fg || !size.w || !size.h) return;
+    const hub = topEntities[0]?.node;
+    if (!hub || !Number.isFinite(hub.x) || !Number.isFinite(hub.y)) {
+      fg.zoomToFit(ms, 60);
+      return;
+    }
+    const hood = adjacency.get(hub.id) ?? new Set<string>();
+    const bbox = fg.getGraphBbox(
+      (n: any) => n.id === hub.id || hood.has(n.id)
+    );
+    fg.centerAt(hub.x, hub.y, ms);
+    if (!bbox) return;
+    const pad = 80;
+    const k = Math.min(
+      Math.max(1, size.w - pad * 2) / Math.max(1, bbox.x[1] - bbox.x[0]),
+      Math.max(1, size.h - pad * 2) / Math.max(1, bbox.y[1] - bbox.y[0])
+    );
+    fg.zoom(Math.max(0.2, Math.min(6, k)), ms);
+  }, [topEntities, adjacency, size]);
+
+
+  const anchor = hoverNode ?? selected;
   const highlight = useMemo(() => {
-    if (!anchor) return { nodes: new Set<string>(), links: new Set<any>() };
-    const nodes = new Set<string>([anchor.id]);
+    const nodes = new Set<string>();
     const links = new Set<any>();
-    for (const l of graphData.links) {
-      const s = typeof l.source === "object" ? (l.source as any).id : l.source;
-      const t = typeof l.target === "object" ? (l.target as any).id : l.target;
-      if (s === anchor.id || t === anchor.id) {
-        nodes.add(s);
-        nodes.add(t);
-        links.add(l);
+    if (anchor) {
+      nodes.add(anchor.id);
+      for (const l of graphData.links) {
+        const s = typeof l.source === "object" ? (l.source as any).id : l.source;
+        const t = typeof l.target === "object" ? (l.target as any).id : l.target;
+        if (s === anchor.id || t === anchor.id) {
+          nodes.add(s); nodes.add(t); links.add(l);
+        }
       }
     }
     return { nodes, links };
-  }, [anchor, graphData.links]);
+  }, [anchor, graphData]);
 
-  const displayGraphData = useMemo(() => {
-    if (!isolate || !anchor) return graphData;
-    const allowed = highlight.nodes;
-    return {
-      nodes: graphData.nodes.filter((n) => allowed.has(n.id)),
-      links: graphData.links.filter(
-        (l) =>
-          allowed.has(typeof l.source === "object" ? (l.source as any).id : l.source) &&
-          allowed.has(typeof l.target === "object" ? (l.target as any).id : l.target)
-      ),
-    };
-  }, [graphData, isolate, anchor, highlight.nodes]);
-
-  const focusNode = useCallback((node: any) => {
-    setSelected(node);
-    if (!is3D && fgRef.current && Number.isFinite(node.x) && Number.isFinite(node.y)) {
-      fgRef.current.centerAt(node.x, node.y, 600);
-      fgRef.current.zoom(1.8, 600);
-    } else if (is3D && fg3dRef.current && Number.isFinite(node.x)) {
-      const distance = 160;
-      const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z || 0);
-      fg3dRef.current.cameraPosition(
-        { x: node.x * distRatio, y: node.y * distRatio, z: (node.z || 0) * distRatio },
-        node,
-        1500
-      );
+  const selectedEntities = useMemo(() => {
+    if (!selected || selected.type !== "entry") return [];
+    const ids = new Set<string>();
+    for (const l of graphData.links) {
+      const s = typeof l.source === "object" ? (l.source as any).id : l.source;
+      const t = typeof l.target === "object" ? (l.target as any).id : l.target;
+      if (s === selected.id) ids.add(t);
     }
-  }, [is3D]);
+    return graphData.nodes.filter((n) => ids.has(n.id));
+  }, [selected, graphData]);
 
-  const centerOnHub = useCallback((duration = 500) => {
-    let best: any = null;
-    let maxDeg = -1;
-    for (const n of graphData.nodes) {
-      const d = degree.get(n.id) ?? 0;
-      if (d > maxDeg && Number.isFinite(n.x) && Number.isFinite(n.y)) {
-        maxDeg = d;
-        best = n;
+  // Tetangga langsung dari node terpilih — dasar buat mode "graf lokal"
+  // (ala local graph Obsidian). Beda dari `highlight`: itu ngikutin hover
+  // (buat sorot cepat), ini murni ngikutin selection (buat mode isolate
+  // yang gak boleh kedip-kedip ikut mouse lewat).
+  const neighborhood = useMemo(() => {
+    if (!selected) return null;
+    const nodeIds = new Set<string>([selected.id]);
+    const links: any[] = [];
+    for (const l of graphData.links) {
+      const s = typeof l.source === "object" ? (l.source as any).id : l.source;
+      const t = typeof l.target === "object" ? (l.target as any).id : l.target;
+      if (s === selected.id || t === selected.id) {
+        nodeIds.add(s); nodeIds.add(t);
+        links.push(l);
       }
     }
-    if (!best) return;
-    if (!is3D && fgRef.current) {
-      fgRef.current.centerAt(best.x, best.y, duration);
-      fgRef.current.zoom(0.85, duration);
-    } else if (is3D && fg3dRef.current) {
-      fg3dRef.current.cameraPosition(
-        { x: 0, y: 0, z: 450 },
-        { x: 0, y: 0, z: 0 },
-        duration
-      );
+    return { nodes: graphData.nodes.filter((n) => nodeIds.has(n.id)), links };
+  }, [selected, graphData]);
+
+  const [isolate, setIsolate] = useState(false);
+  const visibleGraph = isolate && neighborhood ? neighborhood : graphData;
+  useEffect(() => {
+    if (isolate && neighborhood) {
+      const t = setTimeout(() => fgRef.current?.zoomToFit(400, 90), 60);
+      return () => clearTimeout(t);
     }
-  }, [graphData.nodes, degree, is3D]);
+  }, [isolate, selected]);
 
-  // Jarvis Hand Gesture handler
-  const handleJarvisGesture = useCallback((st: HandGestureState) => {
-    if (!is3D || !fg3dRef.current || !st.handPresent) return;
-
-    const fg = fg3dRef.current;
-    const camera = fg.camera?.();
-    if (!camera) return;
-
-    // 1. OPEN PALM -> Orbit / Rotate around center
-    if (st.gesture === "open_palm") {
-      const rotSpeed = 3.5;
-      const currentPos = camera.position;
-      const radius = Math.hypot(currentPos.x, currentPos.z);
-      let angle = Math.atan2(currentPos.z, currentPos.x);
-
-      angle -= st.deltaX * rotSpeed;
-      const newY = currentPos.y + st.deltaY * 300;
-
-      camera.position.x = radius * Math.cos(angle);
-      camera.position.z = radius * Math.sin(angle);
-      camera.position.y = newY;
-      camera.lookAt(0, 0, 0);
+  // "Terkait" ala backlinks Obsidian — entri LAIN yang nyebut entitas yang
+  // sama dengan entri terpilih (2-hop lewat entitas bareng), diranking dari
+  // berapa banyak entitas yang mereka bagi.
+  const relatedEntries = useMemo(() => {
+    if (!selected || selected.type !== "entry") return [];
+    const counts = new Map<string, number>();
+    for (const ent of selectedEntities) {
+      for (const e of (ent as any).entries ?? []) {
+        if (e.id === selected.id) continue;
+        counts.set(e.id, (counts.get(e.id) ?? 0) + 1);
+      }
     }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([id, n]) => ({ node: graphData.nodes.find((x) => x.id === id), n }))
+      .filter((x): x is { node: Node; n: number } => !!x.node);
+  }, [selected, selectedEntities, graphData]);
 
-    // 2. PINCH -> Zoom in / out based on pinch distance or deltaY
-    else if (st.gesture === "pinch") {
-      const zoomFactor = 1 + st.deltaY * 2;
-      camera.position.x *= zoomFactor;
-      camera.position.y *= zoomFactor;
-      camera.position.z *= zoomFactor;
+  const suggestions = useMemo(() => {
+    if (q.trim().length < 2) return [];
+    const needle = q.toLowerCase();
+    return graphData.nodes
+      .filter((n) => (n.content ?? n.label).toLowerCase().includes(needle))
+      .slice(0, 8);
+  }, [q, graphData]);
+
+  // Didefinisikan di atas focusNode/resetLayout yang memakainya. Kalau
+  // dideklarasikan di bawah, setter-nya tidak lagi dianggap stabil — React
+  // Compiler berhenti mengoptimalkan komponen ini dan lint mengeluh soal
+  // variabel yang dipakai sebelum dideklarasikan.
+  const [popupNode, setPopupNode] = useState<Node | null>(null);
+
+  const focusNode = useCallback((n: Node) => {
+    setSelected(n);
+    setPopupNode(n);
+    setQ("");
+    const live = graphData.nodes.find((x) => x.id === n.id) as any;
+    if (live && Number.isFinite(live.x) && fgRef.current) {
+      fgRef.current.centerAt(live.x, live.y, 700);
+      fgRef.current.zoom(5, 700);
     }
+  }, [graphData]);
 
-    // 3. FIST -> Pan camera horizontally / vertically
-    else if (st.gesture === "fist") {
-      const panSpeed = 250;
-      camera.position.x -= st.deltaX * panSpeed;
-      camera.position.y += st.deltaY * panSpeed;
-    }
-  }, [is3D]);
+  const popupRef = useRef<HTMLDivElement>(null);
+  // Popup ngambang di posisi node di layar — dilacak tiap frame karena
+  // node tetap bisa bergerak (fisika/pan/zoom) selagi popup terbuka.
+  useEffect(() => {
+    if (!popupNode) return;
+    let raf: number;
+    const tick = () => {
+      const live = graphData.nodes.find((n) => n.id === popupNode.id) as any;
+      if (live && fgRef.current && popupRef.current && Number.isFinite(live.x)) {
+        const { x, y } = fgRef.current.graph2ScreenCoords(live.x, live.y);
+        // translate ke titik node dulu, baru geser -50% lebar sendiri buat
+        // center horizontal + turun 18px biar gak nutupin bulatannya.
+        popupRef.current.style.transform = `translate(${x}px, ${y}px) translate(-50%, 18px)`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [popupNode, graphData]);
 
+  /**
+   * Buang semua posisi tersimpan dan susun ulang dari nol.
+   *
+   * Node dibuat ULANG sebagai objek baru, bukan dibersihkan di tempat: d3
+   * menulis x/y/vx/vy/fx/fy langsung ke objek node, dan cuma menyemai ulang
+   * posisi buat objek yang belum pernah dia lihat. Link ikut dinormalkan
+   * balik ke id — begitu simulasi jalan, source/target-nya sudah ditukar
+   * jadi referensi ke objek node lama yang sebentar lagi dibuang.
+   *
+   * Semua node ditandai "loose" supaya tidak ada yang dibekukan di tengah
+   * animasi kalau kebetulan ada poll masuk; onEngineStop yang membekukan
+   * dan menyimpan posisi barunya begitu semuanya berhenti bergerak.
+   */
   const resetLayout = useCallback(() => {
     if (!data) return;
     positionCacheRef.current = {};
     try {
       localStorage.removeItem(POSITION_CACHE_KEY);
-    } catch {}
+    } catch {
+      // storage disabled -> tidak ada yang perlu dibuang
+    }
     draggingRef.current = null;
-    didInitialFit.current = false;
+    didInitialFit.current = false; // biar balik ke-center ke hub abis settle
     looseRef.current = new Set(data.nodes.map((n) => n.id));
     setSelected(null);
+    setPopupNode(null);
     setIsolate(false);
     setGraphData({
       nodes: data.nodes.map((n) => {
@@ -426,19 +575,17 @@ export default function GraphPage() {
       }),
       links: data.links.map((l) => ({ ...l })),
     });
-    fgRef.current?.d3ReheatSimulation?.();
-    fg3dRef.current?.d3ReheatSimulation?.();
+    fgRef.current?.d3ReheatSimulation();
   }, [data]);
 
-  const tone: Tone = !data ? "idle" : err ? "bad" : "ok";
+  // Simulasi berhenti setelah cooldown, jadi canvas tidak menggambar ulang
+  // dengan sendirinya. Tanpa ini pindah tema tidak mengubah apa pun di
+  // canvas sampai ada interaksi berikutnya.
+  useEffect(() => {
+    fgRef.current?.refresh?.();
+  }, [isDark, showLabels]);
 
-  const suggestions = useMemo(() => {
-    if (!q.trim()) return [];
-    const lower = q.toLowerCase();
-    return graphData.nodes
-      .filter((n) => (n.label || "").toLowerCase().includes(lower))
-      .slice(0, 8);
-  }, [q, graphData.nodes]);
+  const tone: Tone = !data ? "idle" : err ? "bad" : "ok";
 
   return (
     <Guard>
@@ -449,10 +596,10 @@ export default function GraphPage() {
           <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">
-                Graph Memori {is3D ? "3D" : "2D"}
+                Graph Memori
               </h1>
               <p className="mt-1 text-sm text-tx-3">
-                Visualisasi semantik memori Vania &amp; entitas relasional. Klik node untuk detail.
+                Entri &amp; entitas graph berdasarkan tautan, dengan entitas paling sibuk di tengah. Klik node untuk lihat detailnya.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -462,31 +609,6 @@ export default function GraphPage() {
                   {data.stats.entries} entri · {data.stats.entities} entitas · {data.stats.edges} tautan
                 </Pill>
               )}
-
-              {/* Toggle 2D / 3D */}
-              <button
-                onClick={() => setIs3D((v) => !v)}
-                title="Ganti tampilan antara 2D Canvas dan 3D WebGL Space"
-                className={cn(
-                  "raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-all",
-                  is3D
-                    ? "bg-violet-500/20 text-violet-300 border border-violet-500/40 shadow-xs shadow-violet-500/20 font-semibold"
-                    : "text-tx-2 hover:text-tx-1"
-                )}
-              >
-                {is3D ? <Box className="size-3 text-violet-400" /> : <Layers className="size-3" />}
-                <span>{is3D ? "Mode 3D WebGL" : "Mode 2D Flat"}</span>
-              </button>
-
-              {/* Jarvis Mode Controller (hanya di 3D) */}
-              {is3D && (
-                <JarvisHandController
-                  active={jarvisActive}
-                  onToggle={() => setJarvisActive((v) => !v)}
-                  onGesture={handleJarvisGesture}
-                />
-              )}
-
               <button
                 onClick={resetLayout}
                 title="Buang semua posisi tersimpan dan susun ulang dari nol"
@@ -518,9 +640,12 @@ export default function GraphPage() {
 
           <div className="grid gap-4 lg:h-[calc(100vh-11rem)] lg:grid-cols-[1fr_340px]">
             <Panel className="well relative h-[62vh] min-h-[340px] overflow-hidden border border-line p-0 lg:h-auto lg:min-h-0">
+              {/* Pengukur kotak panel. Canvas force-graph butuh width/height
+                  eksplisit — defaultnya seukuran window, bukan seukuran panel
+                  ini — dan div inilah yang melaporkan ukurannya. */}
               <div ref={wrapRef} aria-hidden className="pointer-events-none absolute inset-0" />
 
-              {/* Search Overlay */}
+              {/* Kotak cari — lompat ke node tertentu tanpa scroll manual */}
               <div className="absolute left-3 right-3 top-3 z-20 sm:left-4 sm:top-4 sm:right-auto sm:w-64">
                 <div className="panel flex items-center gap-2 rounded-xl px-3 py-2">
                   <Search className="size-3.5 shrink-0 text-tx-3" />
@@ -532,66 +657,54 @@ export default function GraphPage() {
                   />
                 </div>
                 {suggestions.length > 0 && (
-                  <div className="panel mt-1.5 divide-y divide-line overflow-hidden rounded-xl">
-                    {suggestions.map((s) => (
+                  <div className="overlay mt-1.5 max-h-72 overflow-y-auto rounded-xl p-1.5">
+                    {suggestions.map((n) => (
                       <button
-                        key={s.id}
-                        onClick={() => {
-                          focusNode(s);
-                          setQ("");
-                        }}
-                        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-surface-elevated"
+                        key={n.id}
+                        onClick={() => focusNode(n)}
+                        className="flex w-full items-start gap-2 rounded-xl px-2.5 py-2 text-left text-xs text-tx-2 hover:bg-sunken"
                       >
-                        <span className="truncate text-tx-1">{s.label}</span>
-                        <span className="shrink-0 text-[10px] text-tx-3">{s.type === "entity" ? "entitas" : s.kind}</span>
+                        <span
+                          className="mt-1 size-1.5 shrink-0 rounded-full"
+                          style={{ background: n.type === "entity" ? C.entity : (C.kind[n.kind ?? ""] ?? C.fallback) }}
+                        />
+                        <span className="line-clamp-2">{n.content ?? n.label}</span>
                       </button>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* 3D Force Graph Render */}
-              {is3D ? (
-                <ForceGraph3D
-                  ref={fg3dRef}
-                  width={size.w || undefined}
-                  height={size.h || undefined}
-                  graphData={displayGraphData}
-                  nodeLabel="label"
-                  nodeVal={(node: any) => {
-                    const deg = degree.get(node.id) ?? 0;
-                    return nodeRadius(node, deg);
-                  }}
-                  nodeColor={(node: any) => {
-                    const isEntity = node.type === "entity";
-                    return isEntity ? C.entity : (C.kind[node.kind] ?? C.fallback);
-                  }}
-                  nodeResolution={16}
-                  linkColor={() => (isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)")}
-                  linkWidth={1}
-                  linkDirectionalParticles={2}
-                  linkDirectionalParticleWidth={2}
-                  linkDirectionalParticleSpeed={0.005}
-                  onNodeClick={(node: any) => focusNode(node)}
-                  onNodeHover={(node: any) => setHoverNode(node)}
-                  backgroundColor={isDark ? "#090a0f" : "#f4f5f8"}
-                  showNavInfo={false}
-                />
-              ) : (
-                /* 2D Force Graph Render */
+              {err && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-bad">
+                  gagal memuat — {err}
+                </div>
+              )}
+              {!data && !err && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-tx-3">
+                  memuat graph…
+                </div>
+              )}
+              {data && size.w > 0 && (
                 <ForceGraph2D
                   ref={fgRef}
-                  width={size.w || undefined}
-                  height={size.h || undefined}
-                  graphData={displayGraphData}
+                  width={size.w}
+                  height={size.h}
+                  graphData={visibleGraph}
+                  nodeId="id"
+                  backgroundColor="rgba(0,0,0,0)"
+                  cooldownTicks={80}
                   onEngineStop={() => {
+                    // Tetangga yang tadi dilepas sudah berhenti bergerak —
+                    // bekukan di tempatnya yang baru dan simpan, biar reload
+                    // berikutnya mulai dari hasil tarikan tadi.
                     if (looseRef.current.size) {
                       for (const id of looseRef.current) {
                         const n = nodeById.get(id);
                         if (!n || !Number.isFinite(n.x)) continue;
                         n.fx = n.x;
                         n.fy = n.y;
-                        persistNodePosition(n.id, n.x, n.y!);
+                        persistNodePosition(n.id, n.x, n.y);
                       }
                       looseRef.current.clear();
                     }
@@ -602,8 +715,16 @@ export default function GraphPage() {
                   }}
                   onNodeHover={(n: any) => setHoverNode(n)}
                   onNodeClick={(n: any) => focusNode(n)}
-                  onBackgroundClick={() => setSelected(null)}
+                  onBackgroundClick={() => { setSelected(null); setPopupNode(null); }}
                   onNodeDrag={(n: any) => {
+                    // Ala Obsidian: tetangga langsungnya ikut tertarik.
+                    //
+                    // Semua node di sini dibekukan (fx/fy) biar layout-nya
+                    // stabil antar-poll, dan node beku KEBAL sama gaya fisika
+                    // -- itu yang bikin drag terasa mati: cuma satu bulatan
+                    // yang gerak, garisnya molor, sisanya diam. Jadi pas drag
+                    // dimulai, bekuan tetangga langsungnya dilepas sekali,
+                    // supaya link-force menyeret mereka ikut jalan.
                     if (draggingRef.current !== n.id) {
                       draggingRef.current = n.id;
                       for (const id of adjacency.get(n.id) ?? []) {
@@ -614,13 +735,23 @@ export default function GraphPage() {
                         looseRef.current.add(id);
                       }
                     }
+                    // Simulasi bisa udah "tidur" abis settle awal (cooldownTicks
+                    // kepake abis) -- tanpa reheat, node yang ditarik gak
+                    // kegambar ikut gerak sama sekali. Aman dipanggil berkali-
+                    // kali selama drag, cuma nyalain ulang alpha.
                     fgRef.current?.d3ReheatSimulation();
                   }}
                   onNodeDragEnd={(n: any) => {
+                    // Yang ditarik dikunci persis di titik taruh -- gak lompat
+                    // balik ke posisi lama, dan langsung ke-persist biar reload
+                    // berikutnya inget posisi manual ini juga.
                     n.fx = n.x;
                     n.fy = n.y;
                     persistNodePosition(n.id, n.x, n.y);
                     draggingRef.current = null;
+                    // Tetangganya SENGAJA dibiarkan lepas -- mereka masih
+                    // meluncur ke posisi barunya. Dibekukan lagi di
+                    // onEngineStop begitu gerakannya berhenti.
                     fgRef.current?.d3ReheatSimulation();
                   }}
                   linkDirectionalParticles={2}
@@ -637,6 +768,10 @@ export default function GraphPage() {
                   }
                   linkWidth={(l: any) => (highlight.links.has(l) ? 2.4 : 1)}
                   nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+                    // Frame pertama sebelum simulasi jalan, x/y masih
+                    // undefined/NaN — createRadialGradient/arc lempar
+                    // TypeError kalau dikasih itu. Lewati saja, muncul di
+                    // frame berikutnya begitu posisinya kebentuk.
                     if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
                     const isEntity = node.type === "entity";
                     const deg = degree.get(node.id) ?? 0;
@@ -685,118 +820,248 @@ export default function GraphPage() {
                     }
                     ctx.restore();
                   }}
-                  cooldownTicks={80}
+                  nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
+                    if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
+                    const deg = degree.get(node.id) ?? 0;
+                    const r = nodeRadius(node, deg) + 3;
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+                    ctx.fill();
+                  }}
                 />
+              )}
+
+              {/* Popup ngambang di posisi node — muncul begitu diklik, ikut
+                  gerak node saat fisika/pan/zoom jalan (lihat efek di atas). */}
+              {popupNode && (
+                <div
+                  ref={popupRef}
+                  className="overlay pointer-events-auto absolute left-0 top-0 z-30 w-72 max-w-[calc(100vw-3rem)] rounded-2xl p-4"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="size-2.5 shrink-0 rounded-full"
+                        style={{ background: popupNode.type === "entity" ? C.entity : (C.kind[popupNode.kind ?? ""] ?? C.fallback) }}
+                      />
+                      <span className="text-xs font-medium text-tx-1">
+                        {popupNode.type === "entity" ? "Entitas" : KIND_LABEL[popupNode.kind ?? ""] ?? "Entri"}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setPopupNode(null)}
+                      className="text-tx-3 hover:text-tx-1"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                  <p className="mt-2 line-clamp-5 text-xs leading-relaxed text-tx-2">
+                    {popupNode.type === "entity"
+                      ? `${popupNode.label} — disebut di ${degree.get(popupNode.id) ?? 0} entri`
+                      : popupNode.content}
+                  </p>
+                  <p className="mt-2 text-[10px] text-tx-3">
+                    {highlight.links.size} garis tersorot ke node terhubung — detail lengkap di panel kanan
+                  </p>
+                </div>
               )}
             </Panel>
 
-            {/* Sidebar Detail Node */}
-            <div className="flex flex-col gap-4">
-              <Panel className="flex-1 overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-line pb-3">
-                  <h2 className="text-sm font-semibold text-tx-1">
-                    {selected ? (selected.type === "entity" ? "Detail Entitas" : "Detail Memori") : "Pilih Node"}
+            <div className="space-y-4 lg:overflow-y-auto">
+              <Panel className="p-5">
+                <h2 className="text-sm font-medium text-tx-2">Legenda</h2>
+                <p className="mb-2.5 mt-1 text-[10.5px] leading-relaxed text-tx-3">
+                  Klik buat menampilkan namanya langsung di graph.
+                </p>
+                <div className="space-y-0.5">
+                  {LEGEND_ROWS.map(({ key, label, note }) => {
+                    const on = !!showLabels[key];
+                    const color = key === "entity" ? C.entity : C.kind[key];
+                    const empty = key === "archive" && !showArchive;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => toggleLabel(key)}
+                        className={cn(
+                          "flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-xs transition-colors hover:bg-sunken",
+                          on ? "text-tx-1" : "text-tx-2"
+                        )}
+                      >
+                        <span
+                          className="size-2.5 shrink-0 rounded-full transition-opacity"
+                          style={{ background: color, opacity: on ? 1 : 0.45 }}
+                        />
+                        <span className="flex-1 truncate">
+                          {label}
+                          {(note || empty) && (
+                            <span className="text-tx-3">
+                              {" · "}
+                              {empty ? "belum dimuat" : note}
+                            </span>
+                          )}
+                        </span>
+                        <span
+                          className={cn(
+                            "flex size-4 shrink-0 items-center justify-center rounded-[5px] border transition-colors",
+                            on
+                              ? "border-transparent bg-accent-tint text-accent-solid"
+                              : "border-line text-transparent"
+                          )}
+                        >
+                          <Check className="size-3" />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-3 border-t border-line-soft pt-2 text-[10px] leading-relaxed text-tx-3">
+                  Bulatan entri membesar mengikuti panjang isinya — konteks
+                  lebih tebal, bulatan lebih besar. Nyalain nama entri sekaligus
+                  banyak bikin canvas padat; paling enak dipakai barengan
+                  &quot;Graf lokal&quot;.
+                </p>
+              </Panel>
+
+              <Panel className="p-5">
+                <h2 className="mb-3 flex items-center gap-1.5 text-sm font-medium text-tx-2">
+                  <Flame className="size-3.5 text-warn" /> Entitas tersibuk
+                </h2>
+                <div className="space-y-1.5">
+                  {topEntities.map(({ node, n }) => (
+                    <button
+                      key={node.id}
+                      onClick={() => focusNode(node)}
+                      className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-left text-xs text-tx-2 transition-colors hover:bg-sunken"
+                    >
+                      <span className="truncate">{node.label}</span>
+                      <span className="num shrink-0 text-tx-3">{n}</span>
+                    </button>
+                  ))}
+                </div>
+              </Panel>
+
+              <Panel className="p-5">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h2 className="text-sm font-medium text-tx-2">
+                    {selected ? (selected.type === "entity" ? "Entitas" : "Entri") : "Klik sebuah node"}
                   </h2>
                   {selected && (
                     <button
-                      onClick={() => setSelected(null)}
-                      className="text-tx-3 hover:text-tx-1"
+                      onClick={() => setIsolate((v) => !v)}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+                        isolate
+                          ? "bg-accent-tint text-accent-solid"
+                          : "raised text-tx-2 hover:text-tx-1"
+                      )}
                     >
-                      <X className="size-4" />
+                      <Focus className="size-3" />
+                      {isolate ? "Graf penuh" : "Graf lokal"}
                     </button>
                   )}
                 </div>
-
                 {selected ? (
-                  <div className="mt-4 space-y-4">
-                    <div>
-                      <span className="text-[10px] uppercase tracking-wider text-tx-3">Label</span>
-                      <p className="mt-0.5 text-sm font-medium text-tx-1">{selected.label}</p>
-                    </div>
-
-                    {selected.content && (
-                      <div>
-                        <span className="text-[10px] uppercase tracking-wider text-tx-3">Isi Lengkap</span>
-                        <p className="mt-1 whitespace-pre-wrap rounded-xl bg-surface-elevated p-3 text-xs text-tx-2 border border-line">
-                          {selected.content}
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-[10px] text-tx-3">Tipe</span>
-                        <p className="font-medium text-tx-1">{selected.type === "entity" ? "Entitas Relasional" : selected.kind}</p>
-                      </div>
-                      {selected.scope && (
-                        <div>
-                          <span className="text-[10px] text-tx-3">Scope</span>
-                          <p className="font-medium text-tx-1">{selected.scope}</p>
+                  <div className="space-y-3 text-sm">
+                    {selected.type === "entity" ? (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="size-2.5 rounded-full" style={{ background: C.entity }} />
+                          <p className="font-medium text-tx-1">{selected.label}</p>
                         </div>
-                      )}
-                    </div>
-
-                    {selected.entries && selected.entries.length > 0 && (
-                      <div>
-                        <span className="text-[10px] uppercase tracking-wider text-tx-3">
-                          Entri Terhubung ({selected.entries.length})
-                        </span>
-                        <div className="mt-2 space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                          {selected.entries.map((e) => (
+                        <p className="text-xs text-tx-3">
+                          disebut di {degree.get(selected.id) ?? 0} entri
+                        </p>
+                        <div className="max-h-64 space-y-1 overflow-y-auto border-t border-line-soft pt-2">
+                          {(selected.entries ?? []).map((e) => (
                             <button
                               key={e.id}
                               onClick={() => {
-                                const targetNode = nodeById.get(e.id);
-                                if (targetNode) focusNode(targetNode);
+                                const n = graphData.nodes.find((x) => x.id === e.id);
+                                if (n) focusNode(n);
                               }}
-                              className="w-full rounded-lg bg-surface-elevated p-2 text-left text-xs transition-colors hover:bg-surface border border-line text-tx-2 hover:text-tx-1 truncate block"
+                              className="block w-full rounded-xl px-2 py-1.5 text-left text-xs text-tx-2 transition-colors hover:bg-sunken hover:text-tx-1"
                             >
                               {e.label}
                             </button>
                           ))}
                         </div>
-                      </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="leading-relaxed text-tx-2">{selected.content}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          <Pill tone={selected.kind === "active" ? "ok" : "idle"}>{selected.kind}</Pill>
+                          <Pill tone="idle">{selected.scope}</Pill>
+                          {selected.audience && (
+                            <Pill tone={selected.audience === "private" ? "idle" : "ok"}>
+                              {selected.audience === "private" ? (
+                                <Lock className="size-3" />
+                              ) : (
+                                <Globe className="size-3" />
+                              )}
+                              {selected.audience}
+                            </Pill>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 border-t border-line-soft pt-2 text-[11px] text-tx-3">
+                          <div>dibuat<div className="text-tx-2">{fmtDate(selected.createdAt)}</div></div>
+                          <div>diperbarui<div className="text-tx-2">{fmtDate(selected.updatedAt)}</div></div>
+                        </div>
+                        {selectedEntities.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 border-t border-line-soft pt-2">
+                            {selectedEntities.map((n) => (
+                              <button
+                                key={n.id}
+                                onClick={() => focusNode(n)}
+                                className="rounded-full bg-accent-tint px-2 py-0.5 text-[11px] text-entity transition-opacity hover:opacity-80"
+                              >
+                                {n.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {relatedEntries.length > 0 && (
+                          <div className="border-t border-line-soft pt-2">
+                            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-tx-3">
+                              <Link2 className="size-3" /> Terkait
+                            </h3>
+                            <div className="space-y-1">
+                              {relatedEntries.map(({ node, n }) => (
+                                <button
+                                  key={node.id}
+                                  onClick={() => focusNode(node)}
+                                  className="flex w-full items-start gap-2 rounded-xl px-2 py-1.5 text-left text-xs text-tx-2 transition-colors hover:bg-sunken hover:text-tx-1"
+                                >
+                                  <span className="line-clamp-2 flex-1">{node.label}</span>
+                                  <span className="num shrink-0 text-tx-3">{n} bareng</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 ) : (
-                  <div className="mt-8 flex flex-col items-center justify-center text-center text-tx-3">
-                    <Focus className="size-8 stroke-[1.5] text-tx-3/60" />
-                    <p className="mt-2 text-xs">Klik salah satu node di graph untuk melihat metadata dan koneksinya.</p>
-                  </div>
+                  <p className="text-xs text-tx-3">
+                    Detail entri atau entitas muncul di sini.
+                  </p>
                 )}
               </Panel>
 
-              {/* Legenda */}
-              <Panel className="text-xs">
-                <span className="font-semibold text-tx-1 block mb-2">Filter Label Canvas</span>
-                <div className="space-y-1.5">
-                  {LEGEND_ROWS.map((row) => (
-                    <label
-                      key={row.key}
-                      className="flex items-center justify-between cursor-pointer rounded-lg p-1.5 hover:bg-surface-elevated transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="size-2.5 rounded-full"
-                          style={{
-                            backgroundColor:
-                              row.key === "entity"
-                                ? C.entity
-                                : C.kind[row.key] ?? C.fallback,
-                          }}
-                        />
-                        <span className="text-tx-2 capitalize">{row.label}</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={showLabels[row.key] ?? false}
-                        onChange={() => toggleLabel(row.key)}
-                        className="rounded border-line bg-surface text-sky-500 focus:ring-0"
-                      />
-                    </label>
-                  ))}
-                </div>
-              </Panel>
+              <p className="px-1 text-[11px] leading-relaxed text-tx-3">
+                Tarik untuk geser node, scroll untuk zoom. Klik sebuah node
+                buat buka popup ringkas &amp; menyalakan semua garis yang
+                terhubung ke dia — klik area kosong buat matiin.
+                &quot;Graf lokal&quot; mengisolasi cuma node terpilih +
+                tetangga langsungnya, ala local graph Obsidian. Warna node
+                entri mengikuti tier; ungu = entitas tetap. Posisi node
+                tersimpan per browser — &quot;tata ulang&quot; membuangnya dan
+                menyusun ulang dari nol kalau sudah telanjur berdempetan,
+                &quot;pusatkan&quot; cuma membawa kamera balik ke entitas
+                tersibuk tanpa mengubah tata letak.
+              </p>
             </div>
           </div>
         </main>
