@@ -8,7 +8,7 @@ import { Panel, Pill, StatusDot, useLive, type Tone } from "@/components/monitor
 import { useTheme } from "@/lib/theme";
 import {
   Lock, Globe, RefreshCw, Search, Flame, X, Focus, Link2, Check, Crosshair, Shuffle,
-  Box, Layers, Compass, Orbit
+  Box, Layers, Compass, Orbit, Sparkles
 } from "lucide-react";
 import * as THREE from "three";
 import { forceCollide } from "d3-force-3d";
@@ -41,11 +41,11 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 const LEGEND_ROWS = [
-  { key: "entity", label: "entitas galaxy (core)", note: "bintang pulsar" },
-  { key: "seed", label: KIND_LABEL.seed, note: "nebula biru terang" },
-  { key: "active", label: KIND_LABEL.active, note: "bintang hijau zamrud" },
-  { key: "evicted", label: KIND_LABEL.evicted, note: "bintang kuning emas" },
-  { key: "archive", label: KIND_LABEL.archive, note: "debu bintang perak" },
+  { key: "entity", label: "entitas (pusat)", note: "pulsar bercahaya" },
+  { key: "seed", label: KIND_LABEL.seed, note: "nebula cyan" },
+  { key: "active", label: KIND_LABEL.active, note: "emerald glow" },
+  { key: "evicted", label: KIND_LABEL.evicted, note: "amber glow" },
+  { key: "archive", label: KIND_LABEL.archive, note: "silver glow" },
 ] as const;
 
 const PHYSICS_KEYS = ["x", "y", "z", "vx", "vy", "vz", "fx", "fy", "fz", "index"];
@@ -227,6 +227,9 @@ export default function GraphPage() {
           n.fy = n.y;
         }
       }
+
+      // Distribusi Bola / Spherical Galaxy 3D
+      const total = data.nodes.length;
       const nextNodes = data.nodes.map((incoming, i) => {
         const existing = prevById.get(incoming.id);
         if (existing) {
@@ -238,30 +241,29 @@ export default function GraphPage() {
           return { ...incoming, x: remembered.x, y: remembered.y, fx: remembered.x, fy: remembered.y };
         }
 
-        // Seeding Spiral 3D Galaxy
+        // TATA LETAK 3D BOLA (Spherical / Fibonacci Sphere Shells)
         const isEntity = incoming.type === "entity";
         if (isEntity) {
-          const phi = Math.acos(-1 + (2 * i) / Math.max(1, data.nodes.length));
-          const theta = Math.sqrt(data.nodes.length * Math.PI) * phi;
-          const radius = 30 + Math.random() * 80;
+          // Entitas di bola dalam (Inner Core Sphere, radius 60-110)
+          const phi = Math.acos(1 - 2 * (i + 0.5) / Math.max(1, total));
+          const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+          const radius = 70 + (i % 3) * 20;
           return {
             ...incoming,
-            x: radius * Math.cos(theta) * Math.sin(phi),
-            y: (radius * Math.sin(theta) * Math.sin(phi)) * 0.35,
+            x: radius * Math.sin(phi) * Math.cos(theta),
+            y: radius * Math.sin(phi) * Math.sin(theta),
             z: radius * Math.cos(phi),
           };
         } else {
-          const arms = 3;
-          const armIndex = i % arms;
-          const armAngle = (armIndex * 2 * Math.PI) / arms;
-          const dist = 60 + Math.pow(Math.random(), 0.7) * 320;
-          const spiralAngle = armAngle + dist * 0.025 + (Math.random() - 0.5) * 0.4;
-          const heightOffset = (Math.random() - 0.5) * (70 * (1 - dist / 400));
+          // Entri memori di bola luar (Outer Galaxy Shell, radius 180-320)
+          const phi = Math.acos(1 - 2 * (i + 0.5) / Math.max(1, total));
+          const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+          const radius = 190 + (i % 5) * 25 + (Math.random() - 0.5) * 20;
           return {
             ...incoming,
-            x: Math.cos(spiralAngle) * dist,
-            y: heightOffset,
-            z: Math.sin(spiralAngle) * dist,
+            x: radius * Math.sin(phi) * Math.cos(theta),
+            y: radius * Math.sin(phi) * Math.sin(theta),
+            z: radius * Math.cos(phi),
           };
         }
       });
@@ -313,6 +315,127 @@ export default function GraphPage() {
     forcesConfigured.current = true;
   }, [data, is3D]);
 
+  // Setup 3D Galaxy Three.js scene (Starfield & Auto-orbit)
+  useEffect(() => {
+    if (!is3D || !fg3dRef.current) return;
+    const fg = fg3dRef.current;
+    const scene = fg.scene?.();
+    if (!scene) return;
+
+    // Tambah Starfield Background
+    const existingStarfield = scene.getObjectByName("galaxy_starfield");
+    if (!existingStarfield) {
+      const starGeometry = new THREE.BufferGeometry();
+      const starCount = 2000;
+      const starPositions = new Float32Array(starCount * 3);
+      const starColors = new Float32Array(starCount * 3);
+
+      for (let i = 0; i < starCount * 3; i += 3) {
+        const r = 700 + Math.random() * 1000;
+        const theta = Math.random() * 2 * Math.PI;
+        const phi = Math.acos(2 * Math.random() - 1);
+        starPositions[i] = r * Math.sin(phi) * Math.cos(theta);
+        starPositions[i + 1] = r * Math.sin(phi) * Math.sin(theta);
+        starPositions[i + 2] = r * Math.cos(phi);
+
+        starColors[i] = 0.5 + Math.random() * 0.5;
+        starColors[i + 1] = 0.6 + Math.random() * 0.4;
+        starColors[i + 2] = 0.9 + Math.random() * 0.1;
+      }
+
+      starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
+      starGeometry.setAttribute("color", new THREE.BufferAttribute(starColors, 3));
+
+      const starMaterial = new THREE.PointsMaterial({
+        size: 2.5,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.7,
+      });
+
+      const starField = new THREE.Points(starGeometry, starMaterial);
+      starField.name = "galaxy_starfield";
+      scene.add(starField);
+    }
+
+    let animationFrameId: number;
+    let angle = 0;
+    const rotateSpeed = 0.0018;
+
+    const animate = () => {
+      if (autoRotate && !jarvisActive && fg.camera) {
+        const camera = fg.camera();
+        if (camera) {
+          angle += rotateSpeed;
+          const r = Math.hypot(camera.position.x, camera.position.z) || 520;
+          camera.position.x = r * Math.cos(angle);
+          camera.position.z = r * Math.sin(angle);
+          camera.lookAt(0, 0, 0);
+        }
+      }
+      animationFrameId = requestAnimationFrame(animate);
+    };
+    animate();
+
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [is3D, autoRotate, jarvisActive]);
+
+  // Glowing 3D Node Object (Pulsar / Luminous Glow)
+  const nodeThreeObject = useCallback((node: any) => {
+    const isEntity = node.type === "entity";
+    const deg = degree.get(node.id) ?? 0;
+    const baseColorHex = isEntity ? GALAXY_COLORS.entity : (GALAXY_COLORS[node.kind] ?? GALAXY_COLORS.fallback);
+    const color = new THREE.Color(baseColorHex);
+
+    const group = new THREE.Group();
+
+    // 1. Core Sphere
+    const radius = isEntity
+      ? 5 + Math.min(8, Math.sqrt(deg) * 1.8)
+      : 2.4 + Math.min(3.5, (node.content?.length || 0) * 0.008);
+
+    const sphereGeom = new THREE.SphereGeometry(radius, 24, 24);
+    const sphereMat = new THREE.MeshStandardMaterial({
+      color: color,
+      emissive: color,
+      emissiveIntensity: isEntity ? 1.0 : 0.7,
+      roughness: 0.2,
+      metalness: 0.8,
+    });
+    const coreMesh = new THREE.Mesh(sphereGeom, sphereMat);
+    group.add(coreMesh);
+
+    // 2. Glowing Halo (Atmosphere Mesh)
+    const glowRadius = radius * (isEntity ? 2.5 : 1.8);
+    const glowGeom = new THREE.SphereGeometry(glowRadius, 16, 16);
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: isEntity ? 0.45 : 0.25,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
+    });
+    const glowMesh = new THREE.Mesh(glowGeom, glowMat);
+    group.add(glowMesh);
+
+    // 3. Ring Orbital
+    if (isEntity && deg > 3) {
+      const ringGeom = new THREE.RingGeometry(radius * 1.8, radius * 2.1, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: color,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.35,
+        blending: THREE.AdditiveBlending,
+      });
+      const ringMesh = new THREE.Mesh(ringGeom, ringMat);
+      ringMesh.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+      group.add(ringMesh);
+    }
+
+    return group;
+  }, [degree]);
+
   const nodeById = useMemo(
     () => new Map(graphData.nodes.map((n) => [n.id, n])),
     [graphData.nodes]
@@ -363,126 +486,6 @@ export default function GraphPage() {
     };
   }, [graphData, isolate, anchor, highlight.nodes]);
 
-  // Setup 3D Galaxy Three.js scene (Starfield & Auto-orbit)
-  useEffect(() => {
-    if (!is3D || !fg3dRef.current) return;
-    const fg = fg3dRef.current;
-    const scene = fg.scene?.();
-    if (!scene) return;
-
-    const existingStarfield = scene.getObjectByName("galaxy_starfield");
-    if (!existingStarfield) {
-      const starGeometry = new THREE.BufferGeometry();
-      const starCount = 1800;
-      const starPositions = new Float32Array(starCount * 3);
-      const starColors = new Float32Array(starCount * 3);
-
-      for (let i = 0; i < starCount * 3; i += 3) {
-        const r = 800 + Math.random() * 1200;
-        const theta = Math.random() * 2 * Math.PI;
-        const phi = Math.acos(2 * Math.random() - 1);
-        starPositions[i] = r * Math.sin(phi) * Math.cos(theta);
-        starPositions[i + 1] = r * Math.sin(phi) * Math.sin(theta);
-        starPositions[i + 2] = r * Math.cos(phi);
-
-        starColors[i] = 0.6 + Math.random() * 0.4;
-        starColors[i + 1] = 0.7 + Math.random() * 0.3;
-        starColors[i + 2] = 0.9 + Math.random() * 0.1;
-      }
-
-      starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-      starGeometry.setAttribute("color", new THREE.BufferAttribute(starColors, 3));
-
-      const starMaterial = new THREE.PointsMaterial({
-        size: 2.2,
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.75,
-      });
-
-      const starField = new THREE.Points(starGeometry, starMaterial);
-      starField.name = "galaxy_starfield";
-      scene.add(starField);
-    }
-
-    let animationFrameId: number;
-    let angle = 0;
-    const rotateSpeed = 0.0015;
-
-    const animate = () => {
-      if (autoRotate && !jarvisActive && fg.camera) {
-        const camera = fg.camera();
-        if (camera) {
-          angle += rotateSpeed;
-          const r = Math.hypot(camera.position.x, camera.position.z) || 450;
-          camera.position.x = r * Math.cos(angle);
-          camera.position.z = r * Math.sin(angle);
-          camera.lookAt(0, 0, 0);
-        }
-      }
-      animationFrameId = requestAnimationFrame(animate);
-    };
-    animate();
-
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [is3D, autoRotate, jarvisActive]);
-
-  // Glowing 3D Sphere Object with Additive Halo Atmosphere
-  const nodeThreeObject = useCallback((node: any) => {
-    const isEntity = node.type === "entity";
-    const deg = degree.get(node.id) ?? 0;
-    const baseColorHex = isEntity ? GALAXY_COLORS.entity : (GALAXY_COLORS[node.kind] ?? GALAXY_COLORS.fallback);
-    const color = new THREE.Color(baseColorHex);
-
-    const group = new THREE.Group();
-
-    // 1. Core Sphere
-    const radius = isEntity
-      ? 5 + Math.min(8, Math.sqrt(deg) * 1.8)
-      : 2.2 + Math.min(3.5, (node.content?.length || 0) * 0.008);
-
-    const sphereGeom = new THREE.SphereGeometry(radius, 24, 24);
-    const sphereMat = new THREE.MeshStandardMaterial({
-      color: color,
-      emissive: color,
-      emissiveIntensity: isEntity ? 0.95 : 0.65,
-      roughness: 0.2,
-      metalness: 0.8,
-    });
-    const coreMesh = new THREE.Mesh(sphereGeom, sphereMat);
-    group.add(coreMesh);
-
-    // 2. Glowing Halo (Additive Blending)
-    const glowRadius = radius * (isEntity ? 2.4 : 1.7);
-    const glowGeom = new THREE.SphereGeometry(glowRadius, 16, 16);
-    const glowMat = new THREE.MeshBasicMaterial({
-      color: color,
-      transparent: true,
-      opacity: isEntity ? 0.45 : 0.25,
-      blending: THREE.AdditiveBlending,
-      side: THREE.BackSide,
-    });
-    const glowMesh = new THREE.Mesh(glowGeom, glowMat);
-    group.add(glowMesh);
-
-    // 3. Planetary Orbit Ring for Primary Entities
-    if (isEntity && deg > 3) {
-      const ringGeom = new THREE.RingGeometry(radius * 1.8, radius * 2.1, 32);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: color,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.35,
-        blending: THREE.AdditiveBlending,
-      });
-      const ringMesh = new THREE.Mesh(ringGeom, ringMat);
-      ringMesh.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
-      group.add(ringMesh);
-    }
-
-    return group;
-  }, [degree]);
-
   const focusNode = useCallback((node: any) => {
     setSelected(node);
     if (!is3D && fgRef.current && Number.isFinite(node.x) && Number.isFinite(node.y)) {
@@ -515,7 +518,7 @@ export default function GraphPage() {
       fgRef.current.zoom(0.85, duration);
     } else if (is3D && fg3dRef.current) {
       fg3dRef.current.cameraPosition(
-        { x: 0, y: 180, z: 480 },
+        { x: 0, y: 180, z: 520 },
         { x: 0, y: 0, z: 0 },
         duration
       );
@@ -597,11 +600,11 @@ export default function GraphPage() {
           <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">
-                Graph Memori {is3D ? "3D Galaxy" : "2D"}
+                Graph Memori {is3D ? "3D Spherical Galaxy" : "2D"}
               </h1>
               <p className="mt-1 text-sm text-tx-3">
                 {is3D
-                  ? "Peta kosmik 3D memori Vania: Bintang bercahaya & relasi semantik ala Jarvis HUD."
+                  ? "Tata letak 3D Bola Galaksi: Memori tersusun melingkar di ruang 3D dengan entitas inti di tengah."
                   : "Entri & entitas graph berdasarkan tautan, dengan entitas paling sibuk di tengah. Klik node untuk detail."}
               </p>
             </div>
@@ -616,7 +619,7 @@ export default function GraphPage() {
               {/* Toggle 2D / 3D Galaxy */}
               <button
                 onClick={() => setIs3D((v) => !v)}
-                title="Ganti tampilan antara 2D Flat dan 3D Galaxy WebGL Space"
+                title="Ganti tampilan antara 2D Flat dan 3D Spherical Galaxy"
                 className={cn(
                   "raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-all",
                   is3D
@@ -625,7 +628,7 @@ export default function GraphPage() {
                 )}
               >
                 {is3D ? <Orbit className="size-3 text-violet-400" /> : <Layers className="size-3" />}
-                <span>{is3D ? "Mode 3D Galaxy" : "Mode 2D Flat"}</span>
+                <span>{is3D ? "Mode 3D Bola Galaksi" : "Mode 2D Flat"}</span>
               </button>
 
               {/* Jarvis Mode Controller (Aktif di 3D) */}
