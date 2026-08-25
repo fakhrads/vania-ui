@@ -851,7 +851,7 @@ export default function GraphPage() {
 
             {/* Sidebar Detail Node */}
             <div className="flex flex-col gap-4">
-              <Panel className="flex-1 overflow-y-auto">
+              <Panel className="flex-1 overflow-y-auto p-5">
                 <div className="flex items-center justify-between border-b border-line pb-3">
                   <h2 className="text-sm font-semibold text-tx-1">
                     {selected ? (selected.type === "entity" ? "Detail Entitas" : "Detail Memori") : "Pilih Node"}
@@ -926,7 +926,7 @@ export default function GraphPage() {
               </Panel>
 
               {/* Legenda */}
-              <Panel className="text-xs">
+              <Panel className="p-5 text-xs">
                 <span className="font-semibold text-tx-1 block mb-2">Filter Label Canvas</span>
                 <div className="space-y-1.5">
                   {LEGEND_ROWS.map((row) => (
