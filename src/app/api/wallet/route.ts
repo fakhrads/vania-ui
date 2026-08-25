@@ -12,9 +12,12 @@ const ERC20_ABI = parseAbi([
   "function symbol() view returns (string)",
 ]);
 
+const DEFAULT_WALLET = "0x1825d52de63AeeDd3E3E582f192f3Cbe9914BD44";
+const DEFAULT_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+
 const BASE_RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
-const WALLET_ADDRESS = (process.env.BASE_AGENT_WALLET_ADDRESS || "").trim() as `0x${string}`;
-const USDC_CONTRACT = (process.env.BASE_USDC_CONTRACT || "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913") as `0x${string}`;
+const WALLET_ADDRESS = ((process.env.BASE_AGENT_WALLET_ADDRESS || DEFAULT_WALLET).trim()) as `0x${string}`;
+const USDC_CONTRACT = ((process.env.BASE_USDC_CONTRACT || DEFAULT_USDC).trim()) as `0x${string}`;
 const COLD_WALLET = (process.env.BASE_COLD_WALLET_RECIPIENT || "").trim();
 
 const client = createPublicClient({
