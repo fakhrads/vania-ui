@@ -6,15 +6,13 @@ export const dynamic = "force-dynamic";
 
 /**
  * Daftar entitas tetap — kembaran persis dari ENTITIES di
- * ~/.hermes/scripts/vania-obsidian-export.py. Ditambah manual di kedua
- * tempat kalau ada konsep baru, biar linking-nya deterministik & konsisten
- * antara graph view di sini dan vault Obsidian.
+ * ~/.hermes/scripts/vania-obsidian-export.py.
  */
 const ENTITIES = [
   "Abiane", "Fakhri", "Embermourn", "Zerodays", "FitHub Kota Wisata",
   "Dokploy", "Cloudflare", "FakhriPOS", "Astra Honda Motor", "Istidata",
   "Joss Way-ar", "Gawin", "Vania UI", "WhatsApp", "Helix", "NixOS",
-  "Debian", "IHSG", "Vania", "ABIANE.md", "MEMORY.md",
+  "Debian", "IHSG", "Vania", "ABIANE.md", "MEMORY.md", "agentic-core", "Caduceus",
 ];
 const ENTITY_RE = new RegExp(
   ENTITIES.slice()
@@ -26,12 +24,12 @@ const ENTITY_RE = new RegExp(
 
 type Row = {
   id: number; content: string; kind: string; scope: string; audience: string;
-  created_at: string; updated_at: string;
+  created_at: string; updated_at: string; fitness?: number;
 };
 
 /**
  * GET /api/graph
- * Query params: all=1 (ikutkan tier archive — berat, default off)
+ * Query params: all=1 (ikutkan tier archive — default off)
  */
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req);
@@ -40,14 +38,17 @@ export async function GET(req: NextRequest) {
   const includeArchive = req.nextUrl.searchParams.get("all") === "1";
 
   const kindsFakhri = includeArchive
-    ? "('seed','active','evicted','archive')"
-    : "('seed','active','evicted')";
+    ? "('seed','active','evicted','archive','resampled','reasoning','quarantine')"
+    : "('seed','active','evicted','resampled','reasoning','quarantine')";
 
   const data = await query(
-    `SELECT id, content, kind, scope, audience, created_at, updated_at FROM vania_ltm
-     WHERE (scope='fakhri' AND kind IN ${kindsFakhri})
-        OR (scope='abiane' AND kind IN ('seed','active'))
-     ORDER BY scope, kind, id`
+    `SELECT l.id, l.content, l.kind, l.scope, l.audience, l.created_at, l.updated_at,
+            COALESCE(f.fitness, 0) as fitness
+     FROM vania_ltm l
+     LEFT JOIN vania_ltm_fitness f ON l.id = f.ltm_id
+     WHERE (l.scope='fakhri' AND l.kind IN ${kindsFakhri})
+        OR (l.scope='abiane' AND l.kind IN ('seed','active','resampled'))
+     ORDER BY l.scope, l.kind, l.id`
   );
   const rows: Row[] = data.rows;
 
@@ -66,6 +67,7 @@ export async function GET(req: NextRequest) {
       kind: row.kind,
       scope: row.scope,
       audience: row.audience,
+      fitness: row.fitness,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     });
@@ -89,8 +91,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Entri-per-entitas dilampirkan langsung ke node entitas — panel detail di
-  // klien tidak perlu menghitung ulang dari daftar links tiap klik.
   for (const n of nodes) {
     if (n.type === "entity") n.entries = entryLinksByEntity.get(n.id) ?? [];
   }

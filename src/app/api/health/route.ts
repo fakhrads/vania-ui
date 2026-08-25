@@ -5,18 +5,13 @@ import { requireAuth } from "@/lib/api-guard";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/health — sinyal kesehatan memori Vania, satu panggilan.
- *
- * Sisi A rekonsiliasi (operasi memory di state.db) TIDAK bisa dihitung di
- * sini: state.db hanya ada di mesin Hermes, sedangkan app ini jalan di
- * container. Watchdog `reconcile.py` yang menghitungnya lalu menuliskan
- * verdict ke `vania_health`; endpoint ini membacanya.
+ * GET /api/health — sinyal kesehatan memori Vania & lapis fitness.
  */
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req);
   if (auth.error) return auth.error;
 
-  const [verdict, corpus, opsToday, timeline, recent, lag, coverage] =
+  const [verdict, corpus, opsToday, timeline, recent, lag, coverage, fitnessStats] =
     await Promise.all([
       query(
         `SELECT ok, a_count, b_count, writes_7d, reads_7d, alarms, rooms,
@@ -61,6 +56,18 @@ export async function GET(req: NextRequest) {
                 count(*) FILTER (WHERE length(trim(content)) = 0)::int AS empty
            FROM vania_ltm`
       ),
+      // Ringkasan metrik fitness & curator
+      query(
+        `SELECT count(*)::int as total_tracked,
+                count(last_used_at)::int as active_used,
+                avg(fitness)::float as avg_fitness,
+                max(fitness)::float as max_fitness,
+                sum(retrieval_count)::int as total_retrievals,
+                sum(success_count)::int as total_successes,
+                sum(contradiction_count)::int as total_contradictions,
+                sum(human_reward)::float as total_rewards
+           FROM vania_ltm_fitness`
+      ),
     ]);
 
   const v = verdict.rows[0] ?? null;
@@ -92,5 +99,15 @@ export async function GET(req: NextRequest) {
       sinceLastCheck: lag.rows[0]?.since_last_check ?? null,
     },
     coverage: coverage.rows[0],
+    fitness: fitnessStats.rows[0] ?? {
+      total_tracked: 0,
+      active_used: 0,
+      avg_fitness: 0,
+      max_fitness: 0,
+      total_retrievals: 0,
+      total_successes: 0,
+      total_contradictions: 0,
+      total_rewards: 0,
+    },
   });
 }

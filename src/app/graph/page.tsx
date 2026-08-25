@@ -37,13 +37,22 @@ type Link = { source: string | any; target: string | any };
 type Graph = { nodes: Node[]; links: Link[]; stats: { entries: number; entities: number; edges: number } };
 
 const KIND_LABEL: Record<string, string> = {
-  seed: "fakta inti", active: "aktif", evicted: "pernah aktif", archive: "arsip",
+  seed: "fakta inti",
+  active: "aktif",
+  resampled: "resampled",
+  reasoning: "pelajaran / strategi",
+  quarantine: "karantina (unverified)",
+  evicted: "pernah aktif",
+  archive: "arsip",
 };
 
 const LEGEND_ROWS = [
   { key: "entity", label: "entitas (inti)", note: "center cluster" },
-  { key: "seed", label: KIND_LABEL.seed, note: "biru" },
-  { key: "active", label: KIND_LABEL.active, note: "hijau" },
+  { key: "seed", label: KIND_LABEL.seed, note: "biru langit" },
+  { key: "active", label: KIND_LABEL.active, note: "emerald" },
+  { key: "resampled", label: KIND_LABEL.resampled, note: "sky" },
+  { key: "reasoning", label: KIND_LABEL.reasoning, note: "purple" },
+  { key: "quarantine", label: KIND_LABEL.quarantine, note: "rose" },
   { key: "evicted", label: KIND_LABEL.evicted, note: "kuning" },
   { key: "archive", label: KIND_LABEL.archive, note: "abu-abu" },
 ] as const;
@@ -52,7 +61,7 @@ const PHYSICS_KEYS = ["x", "y", "z", "vx", "vy", "vz", "fx", "fy", "fz", "index"
 
 const LABEL_KEY = "vania-graph-labels-v1";
 const LABEL_DEFAULT: Record<string, boolean> = {
-  entity: true, seed: false, active: false, evicted: false, archive: false,
+  entity: true, seed: false, active: false, resampled: false, reasoning: false, quarantine: false, evicted: false, archive: false,
 };
 
 let labelSnapshot: Record<string, boolean> = LABEL_DEFAULT;
@@ -105,7 +114,15 @@ type CanvasPalette = {
 
 const CANVAS: Record<"dark" | "light", CanvasPalette> = {
   dark: {
-    kind: { seed: "#38bdf8", active: "#34d399", evicted: "#fbbf24", archive: "#94a3b8" },
+    kind: {
+      seed: "#38bdf8",
+      active: "#34d399",
+      resampled: "#38bdf8",
+      reasoning: "#c084fc",
+      quarantine: "#f43f5e",
+      evicted: "#fbbf24",
+      archive: "#94a3b8",
+    },
     entity: "#c084fc",
     fallback: "#8b8f9c",
     linkIdle: "rgba(255,255,255,0.10)",
@@ -117,7 +134,15 @@ const CANVAS: Record<"dark" | "light", CanvasPalette> = {
     focusRing: "#ffffff",
   },
   light: {
-    kind: { seed: "#1f6fd0", active: "#16855c", evicted: "#a86a06", archive: "#6b7080" },
+    kind: {
+      seed: "#1f6fd0",
+      active: "#16855c",
+      resampled: "#0284c7",
+      reasoning: "#7e22ce",
+      quarantine: "#e11d48",
+      evicted: "#a86a06",
+      archive: "#6b7080",
+    },
     entity: "#7b3fd4",
     fallback: "#6b7080",
     linkIdle: "rgba(20,24,40,0.14)",

@@ -35,19 +35,19 @@ export function Panel({
 
 /* ── Status ──────────────────────────────────────────────────────────── */
 
-export type Tone = "ok" | "warn" | "bad" | "idle";
+export type Tone = "ok" | "warn" | "bad" | "idle" | "accent" | "purple";
 
 const TONE: Record<Tone, { text: string; tint: string; ring: string }> = {
-  ok:   { text: "text-ok",   tint: "bg-ok-tint",   ring: "var(--ok)" },
-  warn: { text: "text-warn", tint: "bg-warn-tint", ring: "var(--warn)" },
-  bad:  { text: "text-bad",  tint: "bg-bad-tint",  ring: "var(--bad)" },
-  idle: { text: "text-tx-2", tint: "bg-idle-tint", ring: "var(--idle)" },
+  ok:     { text: "text-ok",     tint: "bg-ok-tint",     ring: "var(--ok)" },
+  warn:   { text: "text-warn",   tint: "bg-warn-tint",   ring: "var(--warn)" },
+  bad:    { text: "text-bad",    tint: "bg-bad-tint",    ring: "var(--bad)" },
+  idle:   { text: "text-tx-2",   tint: "bg-idle-tint",   ring: "var(--idle)" },
+  accent: { text: "text-accent", tint: "bg-accent-tint", ring: "var(--accent)" },
+  purple: { text: "text-purple-400", tint: "bg-purple-500/15", ring: "#c084fc" },
 };
 
 /**
- * Penanda status. Bentuknya berbeda per tone, bukan cuma warnanya —
- * emerald lawan rose tidak terbedakan untuk mata yang sulit membedakan
- * merah-hijau, dan status adalah sinyal terpenting di panel ini.
+ * Penanda status. Bentuknya berbeda per tone, bukan cuma warnanya.
  */
 export function StatusDot({
   tone,
@@ -58,27 +58,19 @@ export function StatusDot({
   live?: boolean;
   size?: number;
 }) {
-  const fill = `var(--${tone === "idle" ? "idle" : tone})`;
-  const shape =
-    tone === "ok" ? (
-      <circle cx="5" cy="5" r="4" fill={fill} />
-    ) : tone === "warn" ? (
-      <path d="M5 1 9.3 8.5H.7Z" fill={fill} />
-    ) : tone === "bad" ? (
-      <path d="M5 .6 9.4 5 5 9.4.6 5Z" fill={fill} />
-    ) : (
-      <circle cx="5" cy="5" r="3.4" fill="none" stroke={fill} strokeWidth="1.6" />
-    );
-
   return (
     <span
-      className={cn("inline-flex shrink-0 items-center justify-center rounded-full", live && "live-dot")}
-      style={live ? ({ "--ring-color": TONE[tone].ring } as React.CSSProperties) : undefined}
-    >
-      <svg width={size} height={size} viewBox="0 0 10 10" aria-hidden="true">
-        {shape}
-      </svg>
-    </span>
+      className={cn(
+        "inline-block rounded-full transition-all",
+        live && "animate-pulse",
+        TONE[tone].tint
+      )}
+      style={{
+        width: size,
+        height: size,
+        boxShadow: `0 0 0 2px ${TONE[tone].ring}`,
+      }}
+    />
   );
 }
 
@@ -88,13 +80,13 @@ export function Pill({
   className,
 }: {
   tone?: Tone;
-  children?: React.ReactNode;
+  children: React.ReactNode;
   className?: string;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
         TONE[tone].tint,
         TONE[tone].text,
         className
@@ -104,8 +96,6 @@ export function Pill({
     </span>
   );
 }
-
-/* ── Kartu metrik ────────────────────────────────────────────────────── */
 
 export function Stat({
   label,
@@ -155,8 +145,6 @@ export function useLive<T>(url: string, ms = 5000) {
   useEffect(() => {
     let stop = false;
     const loop = async () => {
-      // Jangan polling saat tab tersembunyi — dasbor ini dibiarkan terbuka
-      // berjam-jam; tanpa ini dia terus menembak DB tanpa ada yang melihat.
       if (!document.hidden) await tick();
       if (!stop) timer.current = setTimeout(loop, ms);
     };
@@ -189,4 +177,7 @@ export const KIND_CLASS: Record<string, string> = {
   active: "text-active bg-ok-tint",
   evicted: "text-evicted bg-warn-tint",
   archive: "text-tx-2 bg-idle-tint",
+  resampled: "text-sky-400 bg-sky-500/15",
+  reasoning: "text-purple-400 bg-purple-500/15",
+  quarantine: "text-rose-400 bg-rose-500/15 border border-rose-500/30",
 };

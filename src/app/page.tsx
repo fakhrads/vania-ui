@@ -7,6 +7,7 @@ import {
 } from "@/components/monitor";
 import { Lines } from "@/components/lines";
 import { cn } from "@/lib/utils";
+import { Zap, RefreshCw, Lightbulb, AlertTriangle } from "lucide-react";
 
 type Health = {
   checkedAt: string;
@@ -26,11 +27,22 @@ type Health = {
   }[];
   lag: { sinceLastOp: number | null; sinceLastCheck: number | null };
   coverage: { total: number; embedded: number; empty: number };
+  fitness?: {
+    total_tracked: number;
+    active_used: number;
+    avg_fitness: number;
+    max_fitness: number;
+    total_retrievals: number;
+    total_successes: number;
+    total_contradictions: number;
+    total_rewards: number;
+  };
 };
 
 export default function Dashboard() {
   const { data, err, at } = useLive<Health>("/api/health", 5000);
   const v = data?.verdict ?? null;
+  const fit = data?.fitness;
 
   const healthy = v?.ok === true && (data?.ops24.errors ?? 0) === 0;
   const tone: Tone = !data ? "idle" : healthy ? "ok" : v?.ok === false ? "bad" : "warn";
@@ -61,7 +73,7 @@ export default function Dashboard() {
               Kesehatan Memori
             </h1>
             <p className="mt-1 text-sm text-tx-3">
-              Pemantauan <span className="num text-tx-2">db_vania</span> · pgvector
+              Pemantauan <span className="num text-tx-2">db_vania</span> · pgvector + Lapis Fitness (MemRL)
             </p>
           </div>
           {err ? (
@@ -93,7 +105,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <div className="text-lg font-semibold tracking-[-0.02em] text-tx-1">
-                  {!data ? "Memeriksa…" : healthy ? "Sehat" : "Perlu perhatian"}
+                  {!data ? "Memeriksa…" : healthy ? "Sehat & Tersinkron" : "Perlu perhatian"}
                 </div>
                 <div className="mt-0.5 text-xs text-tx-3">
                   Rekonsiliasi terakhir {ago(data?.lag.sinceLastCheck)}
@@ -147,7 +159,7 @@ export default function Dashboard() {
           )}
         </Panel>
 
-        {/* Metrik */}
+        {/* Metrik Inti */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Stat
             label="Baris korpus" tone="idle"
@@ -162,15 +174,60 @@ export default function Dashboard() {
           <Stat
             label="Baca · 7 hari" tone={v?.reads7d ? "ok" : "idle"}
             value={v?.reads7d ?? "—"}
-            sub={v?.reads7d === 0 ? "vania_recall tidak terpakai" : "vania_recall"}
+            sub={v?.reads7d === 0 ? "vania_recall tidak terpakai" : `${v?.reads7d}x vania_recall`}
           />
           <Stat
-            label="Error · 24 jam"
-            tone={(data?.ops24.errors ?? 0) > 0 ? "bad" : "ok"}
-            value={data?.ops24.errors ?? "—"}
-            sub={`${data?.ops24.skips ?? 0} tulisan transien`}
+            label="Fitness Tracker"
+            tone="accent"
+            value={fit ? `${fit.total_tracked}` : "—"}
+            sub={`Max: ${(fit?.max_fitness ?? 0).toFixed(2)} · Avg: ${(fit?.avg_fitness ?? 0).toFixed(3)}`}
           />
         </div>
+
+        {/* Lapis Fitness & MemRL Signals Banner */}
+        {fit && (
+          <Panel className="mb-6 p-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/40 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-accent-tint text-accent">
+                  <Zap className="size-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-tx-1">Sinyal Fitness & Reinforcement (MemRL)</h2>
+                  <p className="text-xs text-tx-3">Pelacakan utilitas, reward manusia, dan penalti kontradiksi</p>
+                </div>
+              </div>
+              <Pill tone="ok" className="text-xs">
+                Auto-Decay Half-Life 30d
+              </Pill>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="well rounded-xl p-3.5">
+                <div className="text-[10.5px] uppercase tracking-wider text-tx-3">Total Retrieval</div>
+                <div className="num mt-1 text-xl font-semibold text-tx-1">{fit.total_retrievals}</div>
+                <div className="text-[10.5px] text-tx-3 mt-0.5">Ditarik via vania_recall</div>
+              </div>
+              <div className="well rounded-xl p-3.5">
+                <div className="text-[10.5px] uppercase tracking-wider text-tx-3">Success Strategy</div>
+                <div className="num mt-1 text-xl font-semibold text-ok">{fit.total_successes}</div>
+                <div className="text-[10.5px] text-tx-3 mt-0.5">Sesi berbuah [STRATEGY]</div>
+              </div>
+              <div className="well rounded-xl p-3.5">
+                <div className="text-[10.5px] uppercase tracking-wider text-tx-3">Human Reward</div>
+                <div className="num mt-1 text-xl font-semibold text-sky-400">{fit.total_rewards}</div>
+                <div className="text-[10.5px] text-tx-3 mt-0.5">Fakta evicted ditulis ulang</div>
+              </div>
+              <div className="well rounded-xl p-3.5">
+                <div className="text-[10.5px] uppercase tracking-wider text-tx-3">Contradictions</div>
+                <div className={cn("num mt-1 text-xl font-semibold", fit.total_contradictions > 0 ? "text-bad" : "text-tx-2")}>
+                  {fit.total_contradictions}
+                </div>
+                <div className="text-[10.5px] text-tx-3 mt-0.5">Penalti replace/remove</div>
+              </div>
+            </div>
+          </Panel>
+        )}
 
         <div className="mb-6 grid gap-4 lg:grid-cols-3">
           {/* Aktivitas */}
@@ -195,7 +252,7 @@ export default function Dashboard() {
             )}
           </Panel>
 
-          {/* Ruangan */}
+          {/* Ruangan & Audiens */}
           <Panel className="p-6">
             <h2 className="mb-4 text-[13.5px] font-semibold text-tx-1">Invariant ruangan</h2>
             {v ? (
@@ -244,25 +301,31 @@ export default function Dashboard() {
           </Panel>
         </div>
 
-        {/* Tier + operasi terakhir */}
+        {/* Tier Lengkap + Operasi Terakhir */}
         <div className="grid gap-4 lg:grid-cols-3">
           <Panel className="p-6">
-            <h2 className="mb-4 text-[13.5px] font-semibold text-tx-1">Tier korpus</h2>
-            <div className="space-y-3">
-              {["seed", "active", "evicted", "archive"].map((k) => (
-                <div key={k} className="flex items-center justify-between">
-                  <span className={cn("num rounded-full px-2.5 py-0.5 text-[11px]", KIND_CLASS[k])}>
-                    {k}
-                  </span>
-                  <span className="num text-sm text-tx-1">{byKind.get(k) ?? 0}</span>
+            <h2 className="mb-4 text-[13.5px] font-semibold text-tx-1">Tier Korpus Lengkap</h2>
+            <div className="space-y-2.5">
+              {["seed", "active", "resampled", "reasoning", "quarantine", "evicted", "archive"].map((k) => (
+                <div key={k} className="flex items-center justify-between py-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className={cn("num rounded-full px-2.5 py-0.5 text-[11px] font-medium", KIND_CLASS[k] || "text-tx-2 bg-idle-tint")}>
+                      {k}
+                    </span>
+                    {k === "reasoning" && <Lightbulb className="size-3 text-purple-400" />}
+                    {k === "quarantine" && <AlertTriangle className="size-3 text-rose-400" />}
+                    {k === "resampled" && <RefreshCw className="size-3 text-sky-400" />}
+                  </div>
+                  <span className="num text-sm font-medium text-tx-1">{byKind.get(k) ?? 0}</span>
                 </div>
               ))}
             </div>
             <p className="mt-5 text-[11px] leading-relaxed text-tx-3">
               <span className="text-tx-2">seed</span> &amp;{" "}
-              <span className="text-tx-2">active</span> masuk system prompt tiap turn.{" "}
-              <span className="text-tx-2">archive</span> &amp;{" "}
-              <span className="text-tx-2">evicted</span> hanya lewat vania_recall.
+              <span className="text-tx-2">active</span> disuntikkan langsung tiap turn.{" "}
+              <span className="text-tx-2">archive</span>,{" "}
+              <span className="text-tx-2">evicted</span>, &amp;{" "}
+              <span className="text-tx-2">reasoning</span> dicari melalui <code className="text-accent">vania_recall</code>.
             </p>
           </Panel>
 
@@ -296,7 +359,7 @@ export default function Dashboard() {
         </div>
 
         <p className="mt-8 text-center text-[11px] text-tx-3">
-          Panel baca-saja. Memori hanya berubah lewat Vania.
+          Panel baca-saja. Memori dipelihara otomatis oleh Vania LTM &amp; Curator.
         </p>
       </main>
     </div>
