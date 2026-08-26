@@ -10,15 +10,18 @@ import {
   ShieldCheck, RefreshCw, Layers, Coins, Landmark
 } from "lucide-react";
 
-type WalletData = {
-  network: string;
+type NetworkInfo = {
+  name: string;
   chainId: number;
+  gasToken: { symbol: string; formatted: string };
+  usdc: { symbol: string; formatted: string; contract: string };
+  explorerUrl: string;
+};
+
+type WalletData = {
+  networks: NetworkInfo[];
   walletAddress: string;
   coldWalletRecipient: string | null;
-  balances: {
-    eth: { formatted: string; symbol: string; raw: string };
-    usdc: { formatted: string; symbol: string; raw: string; contract: string };
-  };
   transactions: {
     id: number;
     tx_hash: string;
@@ -32,7 +35,6 @@ type WalletData = {
     memo: string | null;
     created_at: string;
   }[];
-  explorerUrl: string;
 };
 
 export default function WalletPage() {
@@ -57,7 +59,7 @@ export default function WalletPage() {
                 Autonomous Agent Wallet
               </h1>
               <p className="mt-1 text-sm text-tx-3">
-                Base Mainnet (EVM) · Hot Wallet &amp; Micropayments untuk Ekosistem Agentic
+                Multi-Chain EVM (Polygon PoS &amp; Arbitrum One) · Hot Wallet &amp; Micropayments
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -83,7 +85,7 @@ export default function WalletPage() {
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-xs font-medium text-tx-3">
                   <span className="flex size-2 rounded-full bg-ok animate-pulse" />
-                  <span>Jaringan: <strong className="text-tx-1">Base Mainnet</strong> (Chain ID: 8453)</span>
+                  <span>Jaringan Terhubung: <strong className="text-tx-1">Polygon PoS &amp; Arbitrum One</strong></span>
                 </div>
                 <div className="flex items-center gap-2 pt-1">
                   <span className="font-mono text-base font-semibold text-tx-1 sm:text-lg">
@@ -102,14 +104,17 @@ export default function WalletPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <a
-                  href={data?.explorerUrl || `https://basescan.org`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="raised flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-medium text-tx-1 transition-colors hover:bg-sunken"
-                >
-                  Basescan <ExternalLink className="size-3.5" />
-                </a>
+                {data?.networks?.map((net) => (
+                  <a
+                    key={net.chainId}
+                    href={net.explorerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="raised flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-medium text-tx-1 transition-colors hover:bg-sunken"
+                  >
+                    {net.name} <ExternalLink className="size-3.5" />
+                  </a>
+                ))}
               </div>
             </div>
 
@@ -138,45 +143,47 @@ export default function WalletPage() {
             </div>
           </Panel>
 
-          {/* Balance Cards */}
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Panel className="p-6">
-              <div className="flex items-center justify-between text-xs text-tx-3">
-                <div className="flex items-center gap-2">
-                  <Coins className="size-4 text-emerald-400" />
-                  <span className="uppercase tracking-wider font-medium">USDC Balance (Settlement)</span>
-                </div>
-                <Pill tone="ok">Liquid</Pill>
-              </div>
-              <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-mono text-3xl font-semibold text-tx-1">
-                  {data ? Number(data.balances.usdc.formatted).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : "0.00"}
-                </span>
-                <span className="text-sm font-semibold text-emerald-400">USDC</span>
-              </div>
-              <p className="mt-2 text-xs text-tx-3">
-                Digunakan untuk transaksi A2A (Agent-to-Agent), jual-beli skill, dan sewa resource.
-              </p>
-            </Panel>
+          {/* Multi-Chain Balance Cards */}
+          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+            {data?.networks ? (
+              data.networks.map((net) => (
+                <Panel key={net.chainId} className="p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-border/40 pb-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-2 rounded-full bg-accent" />
+                      <strong className="text-sm font-semibold text-tx-1">{net.name}</strong>
+                    </div>
+                    <Pill tone="ok">Active L2</Pill>
+                  </div>
 
-            <Panel className="p-6">
-              <div className="flex items-center justify-between text-xs text-tx-3">
-                <div className="flex items-center gap-2">
-                  <Layers className="size-4 text-sky-400" />
-                  <span className="uppercase tracking-wider font-medium">ETH Balance (Gas Reserve)</span>
-                </div>
-                <Pill tone="idle">Base Gas</Pill>
-              </div>
-              <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-mono text-3xl font-semibold text-tx-1">
-                  {data ? Number(data.balances.eth.formatted).toFixed(6) : "0.000000"}
-                </span>
-                <span className="text-sm font-semibold text-sky-400">ETH</span>
-              </div>
-              <p className="mt-2 text-xs text-tx-3">
-                Bahan bakar eksekusi on-chain di Base L2 (estimasi gas &lt; $0.005 per transfer).
-              </p>
-            </Panel>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="well rounded-xl p-3.5">
+                      <div className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-tx-3 font-medium">
+                        <Coins className="size-3.5 text-emerald-400" /> USDC Balance
+                      </div>
+                      <div className="mt-2 font-mono text-2xl font-semibold text-tx-1">
+                        {Number(net.usdc.formatted).toFixed(2)}
+                      </div>
+                      <span className="text-[10px] text-emerald-400 font-mono">Settlement Token</span>
+                    </div>
+
+                    <div className="well rounded-xl p-3.5">
+                      <div className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-tx-3 font-medium">
+                        <Layers className="size-3.5 text-sky-400" /> Gas Reserve
+                      </div>
+                      <div className="mt-2 font-mono text-2xl font-semibold text-tx-1">
+                        {Number(net.gasToken.formatted).toFixed(4)}
+                      </div>
+                      <span className="text-[10px] text-sky-400 font-mono">{net.gasToken.symbol}</span>
+                    </div>
+                  </div>
+                </Panel>
+              ))
+            ) : (
+              [1, 2].map((i) => (
+                <Panel key={i} className="h-44 animate-pulse p-6 opacity-40" />
+              ))
+            )}
           </div>
 
           {/* Transactions / Ledger Table */}
