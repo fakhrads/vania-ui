@@ -5,20 +5,41 @@ import { requireAuth } from "@/lib/api-guard";
 export const dynamic = "force-dynamic";
 
 /**
- * Daftar entitas tetap — kembaran persis dari ENTITIES di
- * ~/.hermes/scripts/vania-obsidian-export.py.
+ * Daftar entitas relasional untuk knowledge graph Caduceus.
+ * Mencakup semua stack, homelab, domain, tools, dan proyek inti Fakhri & Vania.
  */
 const ENTITIES = [
   "Abiane", "Fakhri", "Embermourn", "Zerodays", "FitHub Kota Wisata",
-  "Dokploy", "Cloudflare", "FakhriPOS", "Astra Honda Motor", "Istidata",
-  "Joss Way-ar", "Gawin", "Vania UI", "WhatsApp", "Helix", "NixOS",
-  "Debian", "IHSG", "Vania", "ABIANE.md", "MEMORY.md", "agentic-core", "Caduceus",
+  "Dokploy", "Cloudflare", "FakhriPOS", "0xPOS", "TechPulse", "Caduceus",
+  "Astra Honda Motor", "Istidata", "Joss Way-ar", "Gawin", "Vania UI",
+  "WhatsApp", "Helix", "NixOS", "Debian", "IHSG", "Vania", "ABIANE.md",
+  "MEMORY.md", "USER.md", "agentic-core", "0xNode", "9router", "Qorvum",
+  "Kontribo", "pgvector", "Spring Boot", "Next.js", "Bun", "Ollama", "Base"
 ];
+
+// Alias mapping agar term variasi (pos-app, 9router, dll) langsung nge-link ke entitas kanonikal
+const ALIASES: Record<string, string> = {
+  "pos-app": "0xPOS",
+  "fakhripos": "0xPOS",
+  "kasira": "0xPOS",
+  "news.fakhrads.dev": "TechPulse",
+  "deploy.fakhrads.dev": "Dokploy",
+  "9router.fakhrads.dev": "9router",
+  "memory.fakhrads.dev": "Vania UI",
+  "caduceus.fakhrads.dev": "Caduceus",
+  "0x-alpha": "9router",
+  "my_ai": "9router",
+  "db_vania": "pgvector",
+  "vania_ltm": "pgvector",
+};
+
+const ALL_PATTERNS = [
+  ...ENTITIES,
+  ...Object.keys(ALIASES)
+].sort((a, b) => b.length - a.length);
+
 const ENTITY_RE = new RegExp(
-  ENTITIES.slice()
-    .sort((a, b) => b.length - a.length)
-    .map((e) => e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .join("|"),
+  ALL_PATTERNS.map((e) => e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"),
   "gi"
 );
 
@@ -76,8 +97,14 @@ export async function GET(req: NextRequest) {
     let m: RegExpExecArray | null;
     ENTITY_RE.lastIndex = 0;
     while ((m = ENTITY_RE.exec(row.content))) {
-      const canon = ENTITIES.find((e) => e.toLowerCase() === m![0].toLowerCase())!;
-      if (seen.has(canon)) continue;
+      const matchText = m[0].toLowerCase();
+      let canon = ENTITIES.find((e) => e.toLowerCase() === matchText);
+      if (!canon) {
+        // Cek via alias
+        const aliasKey = Object.keys(ALIASES).find((k) => k.toLowerCase() === matchText);
+        if (aliasKey) canon = ALIASES[aliasKey];
+      }
+      if (!canon || seen.has(canon)) continue;
       seen.add(canon);
 
       const entId = `ent-${canon}`;
