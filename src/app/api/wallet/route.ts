@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { requireAuth } from "@/lib/api-guard";
 import { createPublicClient, http, formatUnits, parseAbi } from "viem";
-import { base } from "viem/chains";
+import { polygon, arbitrum, base } from "viem/chains";
 
 export const dynamic = "force-dynamic";
 
@@ -13,37 +13,43 @@ const ERC20_ABI = parseAbi([
 ]);
 
 const DEFAULT_WALLET = "0x1825d52de63AeeDd3E3E582f192f3Cbe9914BD44";
-const DEFAULT_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-
-const BASE_RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
 const WALLET_ADDRESS = ((process.env.BASE_AGENT_WALLET_ADDRESS || DEFAULT_WALLET).trim()) as `0x${string}`;
-const USDC_CONTRACT = ((process.env.BASE_USDC_CONTRACT || DEFAULT_USDC).trim()) as `0x${string}`;
 const COLD_WALLET = (process.env.BASE_COLD_WALLET_RECIPIENT || "").trim();
 
-const client = createPublicClient({
-  chain: base,
-  transport: http(BASE_RPC_URL),
+// Polygon Native Client
+const polygonClient = createPublicClient({
+  chain: polygon,
+  transport: http(process.env.POLYGON_RPC_URL || "https://polygon-rpc.com"),
 });
+const POLYGON_USDC = "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359" as `0x${string}`;
+
+// Arbitrum One Client
+const arbitrumClient = createPublicClient({
+  chain: arbitrum,
+  transport: http(process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc"),
+});
+const ARBITRUM_USDC = "0xaf88d065e77c8cc2239327c5edb3a432268e5831" as `0x${string}`;
 
 /**
  * GET /api/wallet
- * Returns real-time on-chain balance (ETH + USDC) on Base, wallet address, configuration, and recent ledger txs.
+ * Returns real-time on-chain balance on Polygon & Arbitrum, wallet address, configuration, and recent ledger txs.
  */
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req);
   if (auth.error) return auth.error;
 
-  if (!WALLET_ADDRESS) {
-    return NextResponse.json({
-      error: "Wallet address not configured in environment (BASE_AGENT_WALLET_ADDRESS).",
-    }, { status: 500 });
-  }
-
   try {
-    const [ethBalanceRaw, usdcBalanceRaw, txsRes] = await Promise.all([
-      client.getBalance({ address: WALLET_ADDRESS }),
-      client.readContract({
-        address: USDC_CONTRACT,
+    const [polMaticRaw, polUsdcRaw, arbEthRaw, arbUsdcRaw, txsRes] = await Promise.all([
+      polygonClient.getBalance({ address: WALLET_ADDRESS }).catch(() => BigInt(0)),
+      polygonClient.readContract({
+        address: POLYGON_USDC,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [WALLET_ADDRESS],
+      }).catch(() => BigInt(0)),
+      arbitrumClient.getBalance({ address: WALLET_ADDRESS }).catch(() => BigInt(0)),
+      arbitrumClient.readContract({
+        address: ARBITRUM_USDC,
         abi: ERC20_ABI,
         functionName: "balanceOf",
         args: [WALLET_ADDRESS],
@@ -57,29 +63,26 @@ export async function GET(req: NextRequest) {
       `),
     ]);
 
-    const ethBalance = formatUnits(ethBalanceRaw, 18);
-    const usdcBalance = formatUnits(usdcBalanceRaw, 6);
-
     return NextResponse.json({
-      network: "Base Mainnet (EVM)",
-      chainId: 8453,
+      networks: [
+        {
+          name: "Polygon PoS",
+          chainId: 137,
+          gasToken: { symbol: "POL/MATIC", formatted: formatUnits(polMaticRaw, 18) },
+          usdc: { symbol: "USDC", formatted: formatUnits(polUsdcRaw, 6), contract: POLYGON_USDC },
+          explorerUrl: `https://polygonscan.com/address/${WALLET_ADDRESS}`,
+        },
+        {
+          name: "Arbitrum One",
+          chainId: 42161,
+          gasToken: { symbol: "ETH", formatted: formatUnits(arbEthRaw, 18) },
+          usdc: { symbol: "USDC", formatted: formatUnits(arbUsdcRaw, 6), contract: ARBITRUM_USDC },
+          explorerUrl: `https://arbiscan.io/address/${WALLET_ADDRESS}`,
+        }
+      ],
       walletAddress: WALLET_ADDRESS,
       coldWalletRecipient: COLD_WALLET || null,
-      balances: {
-        eth: {
-          raw: ethBalanceRaw.toString(),
-          formatted: ethBalance,
-          symbol: "ETH",
-        },
-        usdc: {
-          raw: usdcBalanceRaw.toString(),
-          formatted: usdcBalance,
-          symbol: "USDC",
-          contract: USDC_CONTRACT,
-        },
-      },
       transactions: txsRes.rows,
-      explorerUrl: `https://basescan.org/address/${WALLET_ADDRESS}`,
     });
   } catch (error: any) {
     console.error("Wallet fetch error:", error);
