@@ -160,6 +160,58 @@ function fmtDate(iso?: string) {
   return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 }
 
+// ── Constellation glow: satu texture radial dipakai ulang semua node ──────────
+// (jauh lebih ringan dari 2 SphereGeometry + MeshStandardMaterial per node)
+let GLOW_TEX: THREE.Texture | null = null;
+function glowTexture() {
+  if (GLOW_TEX) return GLOW_TEX;
+  const S = 128;
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = S;
+  const ctx = cv.getContext("2d")!;
+  const g = ctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  g.addColorStop(0.00, "rgba(255,255,255,1)");
+  g.addColorStop(0.10, "rgba(255,255,255,0.92)");
+  g.addColorStop(0.22, "rgba(255,255,255,0.45)");
+  g.addColorStop(0.42, "rgba(255,255,255,0.14)");
+  g.addColorStop(0.70, "rgba(255,255,255,0.035)");
+  g.addColorStop(1.00, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, S, S);
+  GLOW_TEX = new THREE.CanvasTexture(cv);
+  GLOW_TEX.colorSpace = THREE.SRGBColorSpace;
+  return GLOW_TEX;
+}
+
+const STAR_MATS = new Map<string, THREE.SpriteMaterial>();
+function starMaterial(colorHex: string, opacity: number) {
+  const key = `${colorHex}|${opacity}`;
+  let m = STAR_MATS.get(key);
+  if (!m) {
+    m = new THREE.SpriteMaterial({
+      map: glowTexture(),
+      color: new THREE.Color(colorHex),
+      transparent: true,
+      opacity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    STAR_MATS.set(key, m);
+  }
+  return m;
+}
+
+// hash stabil -> hemisfer kiri/kanan & ketebalan korteks tetap sama tiap render
+function hashId(id: string) {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 4294967295;
+}
+
 function nodeRadius(node: any, deg: number) {
   if (node.type === "entity") {
     return 4.5 + Math.min(9, Math.sqrt(deg) * 1.9);
@@ -319,46 +371,124 @@ export default function GraphPage() {
     forcesConfigured.current = true;
   }, [data, is3D]);
 
-  // Fisika 3D Spherical Cluster: Center Gravity + Radial Force ala Neo4j 3D Globe
+  // Fisika 3D "Brain Constellation": dua hemisfer + korteks shell ellipsoid
   useEffect(() => {
-    if (!is3D || !fg3dRef.current) return;
-    const fg = fg3dRef.current;
-    
-    // Tolakan muatan partikel agar tidak saling tumpang tindih di dalam bola
-    const charge = fg.d3Force?.("charge");
-    if (charge?.strength) {
-      charge.strength(-220);
-      charge.distanceMax?.(600);
-    }
+    if (!is3D) return;
+    let raf = 0;
+    let stopped = false;
+    let cleanupScene: (() => void) | null = null;
 
-    // Link spring yang menarik relasi agar membentuk cluster padat
-    const link = fg.d3Force?.("link");
-    if (link?.distance) {
-      link.distance(65);
-    }
+    const setup = () => {
+      const fg = fg3dRef.current;
+      if (stopped) return;
+      if (!fg?.d3Force) {
+        raf = requestAnimationFrame(setup);
+        return;
+      }
 
-    // Custom 3D Radial & Centering Force agar bentuk keseluruhan mengumpul jadi bola (Globe Cluster)
-    const customSphereForce = (alpha: number) => {
-      const nodes = fg.graphData?.()?.nodes;
-      if (!nodes) return;
-      
-      const targetRadius = 180; // Radius bola dari jauh
-      for (const node of nodes) {
-        if (!Number.isFinite(node.x) || !Number.isFinite(node.y) || !Number.isFinite(node.z)) continue;
-        
-        const dist = Math.hypot(node.x, node.y, node.z) || 1;
-        // Lembutkan tarikan ke radius bola (surface + volume)
-        const diff = (dist - targetRadius) * alpha * 0.08;
-        
-        node.vx = (node.vx || 0) - (node.x / dist) * diff;
-        node.vy = (node.vy || 0) - (node.y / dist) * diff;
-        node.vz = (node.vz || 0) - (node.z / dist) * diff;
+      // Tolakan antar node biar tidak tumpang tindih di dalam volume otak
+      const charge = fg.d3Force("charge");
+      if (charge?.strength) {
+        charge.strength(-165);
+        charge.distanceMax?.(420);
+      }
+
+      // Link spring pendek -> gugusan rapat seperti gyrus
+      const link = fg.d3Force("link");
+      if (link?.distance) link.distance(48);
+
+      // Sumbu ellipsoid otak: panjang depan-belakang (z), lebar (x), tinggi (y)
+      const AX = 178;  // lebar kiri-kanan
+      const AY = 138;  // tinggi
+      const AZ = 232;  // depan-belakang
+      const FISSURE = 22; // celah longitudinal antar hemisfer
+
+      const brainForce = (alpha: number) => {
+        const nodes = fg.graphData?.()?.nodes;
+        if (!nodes) return;
+        const k = alpha * 0.22;
+
+        for (const n of nodes) {
+          if (!Number.isFinite(n.x) || !Number.isFinite(n.y) || !Number.isFinite(n.z)) continue;
+
+          if (n.__shell === undefined) {
+            const h = hashId(n.id);
+            n.__hemi = h < 0.5 ? -1 : 1;
+            // entitas inti duduk lebih dalam, memori menempel ke korteks luar
+            n.__shell = (n.type === "entity" ? 0.42 : 0.74) + h * 0.3;
+          }
+
+          // arah dari pusat dalam ruang ellipsoid ternormalisasi
+          const u = n.x / AX, v = n.y / AY, w = n.z / AZ;
+          const d = Math.hypot(u, v, w) || 1e-6;
+          const t = n.__shell / d;
+
+          // titik target pada shell korteks, searah node saat ini
+          const tx = n.x * t;
+          const ty = n.y * t;
+          const tz = n.z * t;
+
+          n.vx = (n.vx || 0) + (tx - n.x) * k;
+          n.vy = (n.vy || 0) + (ty - n.y) * k;
+          n.vz = (n.vz || 0) + (tz - n.z) * k;
+
+          // dorong keluar dari bidang tengah -> terbelah jadi dua hemisfer
+          if (Math.abs(n.x) < FISSURE) {
+            n.vx += n.__hemi * (FISSURE - Math.abs(n.x)) * k * 1.6;
+          }
+        }
+      };
+
+      fg.d3Force("sphereConstraint", null);
+      fg.d3Force("brain", brainForce);
+      fg.d3ReheatSimulation?.();
+
+      // Starfield latar: satu THREE.Points = satu draw call, praktis gratis
+      const scene = fg.scene?.();
+      if (scene) {
+        const COUNT = 700;
+        const pos = new Float32Array(COUNT * 3);
+        for (let i = 0; i < COUNT; i++) {
+          const r = 900 + Math.random() * 1100;
+          const th = Math.random() * Math.PI * 2;
+          const ph = Math.acos(2 * Math.random() - 1);
+          pos[i * 3] = r * Math.sin(ph) * Math.cos(th);
+          pos[i * 3 + 1] = r * Math.sin(ph) * Math.sin(th);
+          pos[i * 3 + 2] = r * Math.cos(ph);
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        const mat = new THREE.PointsMaterial({
+          map: glowTexture(),
+          size: 7,
+          sizeAttenuation: true,
+          color: new THREE.Color(isDark ? "#9fb4dd" : "#7b8598"),
+          transparent: true,
+          opacity: isDark ? 0.5 : 0.22,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          toneMapped: false,
+        });
+        const stars = new THREE.Points(geo, mat);
+        stars.renderOrder = -1;
+        stars.frustumCulled = false;
+        scene.add(stars);
+        cleanupScene = () => {
+          scene.remove(stars);
+          geo.dispose();
+          mat.dispose();
+        };
       }
     };
 
-    fg.d3Force?.("sphereConstraint", customSphereForce);
-    fg.d3ReheatSimulation?.();
-  }, [is3D]);
+    setup();
+
+    return () => {
+      stopped = true;
+      cancelAnimationFrame(raf);
+      cleanupScene?.();
+    };
+  }, [is3D, isDark]);
 
   // Auto-Orbit camera melingkari bola 3D
   useEffect(() => {
@@ -387,46 +517,25 @@ export default function GraphPage() {
     return () => cancelAnimationFrame(animationFrameId);
   }, [is3D, autoRotate, jarvisActive]);
 
-  // Node 3D: Bulatan Sphere Bersih dengan Sinar Outer Glow Tipis
+  // Node 3D: titik bintang bersinar (1 Sprite/node, material di-cache per warna)
   const nodeThreeObject = useCallback((node: any) => {
     const isEntity = node.type === "entity";
     const deg = degree.get(node.id) ?? 0;
-    const baseColorHex = isEntity ? C.entity : (C.kind[node.kind] ?? C.fallback);
-    const color = new THREE.Color(baseColorHex);
+    const colorHex = isEntity ? C.entity : (C.kind[node.kind] ?? C.fallback);
 
-    const group = new THREE.Group();
-
-    // 1. Bulatan Inti (Solid Clean Sphere dengan aksen Emissive)
-    const radius = isEntity
+    const r = isEntity
       ? 4.2 + Math.min(6, Math.sqrt(deg) * 1.5)
-      : 2.2 + Math.min(2.8, (node.content?.length || 0) * 0.006);
+      : 2.0 + Math.min(2.6, Math.sqrt(deg) * 0.7) + Math.min(1.2, (node.content?.length || 0) * 0.004);
 
-    const sphereGeom = new THREE.SphereGeometry(radius, 24, 24);
-    const sphereMat = new THREE.MeshStandardMaterial({
-      color: color,
-      emissive: color,
-      emissiveIntensity: isEntity ? 0.85 : 0.4,
-      roughness: 0.3,
-      metalness: 0.2,
-    });
-    const coreMesh = new THREE.Mesh(sphereGeom, sphereMat);
-    group.add(coreMesh);
-
-    // 2. Sinar / Halo Cahaya Lembut (Additive Blending)
-    const glowRadius = radius * (isEntity ? 2.1 : 1.6);
-    const glowGeom = new THREE.SphereGeometry(glowRadius, 16, 16);
-    const glowMat = new THREE.MeshBasicMaterial({
-      color: color,
-      transparent: true,
-      opacity: isEntity ? 0.35 : 0.18,
-      blending: THREE.AdditiveBlending,
-      side: THREE.BackSide,
-    });
-    const glowMesh = new THREE.Mesh(glowGeom, glowMat);
-    group.add(glowMesh);
-
-    return group;
-  }, [degree, C]);
+    const sprite = new THREE.Sprite(
+      starMaterial(colorHex, isEntity ? (isDark ? 1 : 0.9) : (isDark ? 0.72 : 0.62))
+    );
+    // texture-nya jauh lebih besar dari inti terang -> halo lembut ikut kebawa
+    const s = r * (isEntity ? 7.2 : 5.8);
+    sprite.scale.set(s, s, 1);
+    sprite.renderOrder = 2;
+    return sprite;
+  }, [degree, C, isDark]);
 
   const nodeById = useMemo(
     () => new Map(graphData.nodes.map((n) => [n.id, n])),
@@ -722,18 +831,18 @@ export default function GraphPage() {
                       <div style="font-size: 9px; color: #64748b; text-transform: uppercase;">${node.type === 'entity' ? 'ENTITAS' : (node.kind || 'MEMORI')}</div>
                     </div>
                   `}
-                  linkColor={() => (isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)")}
-                  linkWidth={1}
-                  linkDirectionalParticles={2}
-                  linkDirectionalParticleWidth={2}
-                  linkDirectionalParticleSpeed={0.005}
-                  linkDirectionalParticleColor={(l: any) => {
-                    const t = typeof l.target === "object" ? l.target : null;
-                    return t?.type === "entity" ? C.entity : C.fallback;
-                  }}
+                  linkColor={(l: any) =>
+                    highlight.links.has(l)
+                      ? (isDark ? "rgba(233,213,255,0.75)" : "rgba(80,40,150,0.6)")
+                      : (isDark ? "rgba(150,175,225,0.09)" : "rgba(30,40,70,0.10)")
+                  }
+                  linkWidth={0}
+                  linkOpacity={1}
                   onNodeClick={(node: any) => focusNode(node)}
                   onNodeHover={(node: any) => setHoverNode(node)}
-                  backgroundColor={isDark ? "#090a0f" : "#f4f5f8"}
+                  backgroundColor={isDark ? "#05060b" : "#f4f5f8"}
+                  warmupTicks={0}
+                  cooldownTime={9000}
                   showNavInfo={false}
                 />
               ) : (
