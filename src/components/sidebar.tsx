@@ -8,7 +8,7 @@ import { useTheme, type Mode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import {
   Activity, Brain, Mail, Eye, Search, ClipboardList, LogOut, ShieldCheck,
-  Share2, X, Sun, Moon, MonitorCog, Ellipsis, Kanban, Bot, MessagesSquare, Box,
+  Share2, Landmark, X, Sun, Moon, MonitorCog, Ellipsis, Kanban, Bot, MessagesSquare, Box,
   WalletCards,
 } from "lucide-react";
 
@@ -20,6 +20,7 @@ const links = [
   { href: "/agents", label: "Subagents", icon: Bot },
   { href: "/ltm", label: "Korpus", icon: Brain },
   { href: "/graph", label: "Graph", icon: Share2 },
+  { href: "/town", label: "Kota", icon: Landmark },
   { href: "/ops", label: "Audit", icon: ClipboardList },
   { href: "/search", label: "Cari", icon: Search },
   { href: "/inbox", label: "Inbox", icon: Mail },
