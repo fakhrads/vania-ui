@@ -5,43 +5,15 @@ import { requireAuth } from "@/lib/api-guard";
 export const dynamic = "force-dynamic";
 
 /**
- * Daftar entitas relasional untuk knowledge graph Caduceus.
- * Mencakup semua stack, homelab, domain, tools, dan proyek inti Fakhri & Vania.
+ * Entitas TIDAK lagi dicocokkan di sini. Dulu route ini memegang kamus
+ * sendiri (kembaran ENTITIES di vania-obsidian-export.py) dan mencocokkan
+ * potongan kata tanpa batas kata — 'bun' ikut cocok di 'bundle', 'base' di
+ * 'database': 67 tautan palsu terukur 23 Sep 2026.
+ *
+ * Sekarang plugin vania-memory yang memegang kamus (entities.json, satu
+ * sumber) dan mengisi tabel `vania_ltm_entities` per kata utuh — saat memori
+ * ditulis dan tiap sweep curator malam. Route ini cuma membaca tabelnya.
  */
-const ENTITIES = [
-  "Abiane", "Fakhri", "Embermourn", "Zerodays", "FitHub Kota Wisata",
-  "Dokploy", "Cloudflare", "FakhriPOS", "0xPOS", "TechPulse", "Caduceus",
-  "Astra Honda Motor", "Istidata", "Joss Way-ar", "Gawin", "Vania UI",
-  "WhatsApp", "Helix", "NixOS", "Debian", "IHSG", "Vania", "ABIANE.md",
-  "MEMORY.md", "USER.md", "agentic-core", "0xNode", "9router", "Qorvum",
-  "Kontribo", "pgvector", "Spring Boot", "Next.js", "Bun", "Ollama", "Base"
-];
-
-// Alias mapping agar term variasi (pos-app, 9router, dll) langsung nge-link ke entitas kanonikal
-const ALIASES: Record<string, string> = {
-  "pos-app": "0xPOS",
-  "fakhripos": "0xPOS",
-  "kasira": "0xPOS",
-  "news.fakhrads.dev": "TechPulse",
-  "deploy.fakhrads.dev": "Dokploy",
-  "9router.fakhrads.dev": "9router",
-  "memory.fakhrads.dev": "Vania UI",
-  "caduceus.fakhrads.dev": "Caduceus",
-  "0x-alpha": "9router",
-  "my_ai": "9router",
-  "db_vania": "pgvector",
-  "vania_ltm": "pgvector",
-};
-
-const ALL_PATTERNS = [
-  ...ENTITIES,
-  ...Object.keys(ALIASES)
-].sort((a, b) => b.length - a.length);
-
-const ENTITY_RE = new RegExp(
-  ALL_PATTERNS.map((e) => e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"),
-  "gi"
-);
 
 type Row = {
   id: number; content: string; kind: string; scope: string; audience: string;
@@ -71,6 +43,18 @@ export async function GET(req: NextRequest) {
         OR (l.scope='abiane' AND l.kind IN ('seed','active','resampled'))
      ORDER BY l.scope, l.kind, l.id`
   );
+  // Satu query untuk semua pasangan entri–entitas yang terlihat di graph.
+  const ents = await query(
+    `SELECT e.ltm_id, e.entitas FROM vania_ltm_entities e
+      WHERE e.ltm_id = ANY($1::bigint[]) ORDER BY e.ltm_id, e.entitas`,
+    [data.rows.map((r: Row) => r.id)]
+  );
+  const entByRow = new Map<number, string[]>();
+  for (const r of ents.rows as { ltm_id: string | number; entitas: string }[]) {
+    const id = Number(r.ltm_id);
+    if (!entByRow.has(id)) entByRow.set(id, []);
+    entByRow.get(id)!.push(r.entitas);
+  }
   const rows: Row[] = data.rows;
 
   const entityIds = new Set<string>();
@@ -93,20 +77,7 @@ export async function GET(req: NextRequest) {
       updatedAt: row.updated_at,
     });
 
-    const seen = new Set<string>();
-    let m: RegExpExecArray | null;
-    ENTITY_RE.lastIndex = 0;
-    while ((m = ENTITY_RE.exec(row.content))) {
-      const matchText = m[0].toLowerCase();
-      let canon = ENTITIES.find((e) => e.toLowerCase() === matchText);
-      if (!canon) {
-        // Cek via alias
-        const aliasKey = Object.keys(ALIASES).find((k) => k.toLowerCase() === matchText);
-        if (aliasKey) canon = ALIASES[aliasKey];
-      }
-      if (!canon || seen.has(canon)) continue;
-      seen.add(canon);
-
+    for (const canon of entByRow.get(Number(row.id)) ?? []) {
       const entId = `ent-${canon}`;
       if (!entityIds.has(entId)) {
         entityIds.add(entId);
@@ -116,6 +87,23 @@ export async function GET(req: NextRequest) {
       links.push({ source: nodeId, target: entId });
       entryLinksByEntity.get(entId)!.push({ id: nodeId, label: row.content.slice(0, 60) });
     }
+  }
+
+  // Tautan antar-entri dari plugin (tahap 02 recall berantai): `mirip`
+  // (disimpan dua arah → digambar sekali per pasangan) dan `menggantikan`
+  // (fakta baru → fakta lama). `satu_sesi` sengaja tidak digambar: sesi
+  // berisi belasan memori jadi klik-rapat yang menutupi struktur lain.
+  const visible = new Set(rows.map((r) => Number(r.id)));
+  const antar = await query(
+    `SELECT src_id, dst_id, jenis, bobot FROM vania_ltm_links
+      WHERE jenis IN ('mirip', 'menggantikan')
+        AND src_id = ANY($1::bigint[]) AND dst_id = ANY($1::bigint[])`,
+    [[...visible]]
+  );
+  for (const k of antar.rows as { src_id: string; dst_id: string; jenis: string; bobot: number }[]) {
+    const a = Number(k.src_id), b = Number(k.dst_id);
+    if (k.jenis === "mirip" && a > b) continue;
+    links.push({ source: `entry-${a}`, target: `entry-${b}`, kind: k.jenis, weight: k.bobot });
   }
 
   for (const n of nodes) {

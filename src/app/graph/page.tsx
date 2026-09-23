@@ -887,7 +887,11 @@ export default function GraphPage() {
                     draggingRef.current = null;
                     fgRef.current?.d3ReheatSimulation();
                   }}
-                  linkDirectionalParticles={2}
+                  // Partikel cuma di tautan ke entitas. Tautan antar-entri
+                  // (mirip/menggantikan) jumlahnya ratusan; menganimasikannya
+                  // membakar GPU di dasbor yang dibiarkan terbuka berjam-jam.
+                  linkDirectionalParticles={(l: any) => (l.kind ? 0 : 2)}
+                  linkLineDash={(l: any) => (l.kind === "menggantikan" ? [4, 3] : null)}
                   linkDirectionalParticleWidth={(l: any) => (highlight.links.has(l) ? 2.6 : 1)}
                   linkDirectionalParticleSpeed={0.004}
                   linkDirectionalParticleColor={(l: any) => {

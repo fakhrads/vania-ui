@@ -31,7 +31,7 @@ Perintah: `bun run dev` · `bun run build` · `bun run lint` · `bun run typeche
 
 ### Arsitektur
 
-- **Data source:** satu Postgres remote (`VANIA_DATABASE_URL`), diakses lewat pool di `src/lib/db.ts` (`query` / `queryOne`, max 5 koneksi). Tabel yang dipakai: `vania_ltm` (korpus memori + kolom `embedding`), `vania_ltm_ops` (audit log operasi), `vania_health` (verdict watchdog), `vania_inbox_legacy`, `vania_obs_active`. Cek skema cepat: `node _schema.mjs` (baca `.env` langsung, bukan lewat Next).
+- **Data source:** satu Postgres remote (`VANIA_DATABASE_URL`), diakses lewat pool di `src/lib/db.ts` (`query` / `queryOne`, max 5 koneksi). Tabel yang dipakai: `vania_ltm` (korpus memori + kolom `embedding`), `vania_ltm_entities` + `vania_ltm_links` (tautan, diisi plugin), `vania_ltm_ops` (audit log operasi), `vania_health` (verdict watchdog), `vania_inbox_legacy`, `vania_obs_active`. Cek skema cepat: `node _schema.mjs` (baca `.env` langsung, bukan lewat Next).
 - **Auth:** single-user JWT HS256 via `jose`, berlaku 7 hari. Kredensial dari `AUTH_USERNAME`/`AUTH_PASSWORD`, token ditandatangani `JWT_SECRET` — semuanya di `.env` (gitignored; `.env*` diabaikan). Token disimpan di `localStorage` key `vn_token`.
   - Sisi klien: `AuthProvider` (`src/lib/auth-context.tsx`) + `authFetch` (`src/lib/auth-fetch.ts`, auto-attach Bearer, auto-logout + redirect `/login` kalau 401).
   - Sisi server: setiap route wajib mulai dengan `const auth = await requireAuth(req); if (auth.error) return auth.error;` (`src/lib/api-guard.ts`). Jangan bikin route API tanpa ini.
@@ -56,7 +56,7 @@ Navigasi di `src/components/sidebar.tsx` — desktop rel kiri menempel, mobile b
 
 ### Hal yang gampang kejeblos
 
-- **Daftar `ENTITIES` di `src/app/api/graph/route.ts` adalah kembaran persis** dari `ENTITIES` di `~/.hermes/scripts/vania-obsidian-export.py`. Nambah konsep baru harus di **dua tempat**, biar linking graph konsisten sama vault Obsidian.
+- **Entitas graph TIDAK dicocokkan di app ini.** Sejak 23 Sep 2026 kamusnya satu sumber di `~/.hermes/plugins/vania-memory/entities.json`; plugin mengisi tabel `vania_ltm_entities` (per kata utuh) dan `vania_ltm_links` (`mirip`/`satu_sesi`/`menggantikan`), dan `/api/graph` cuma membaca dua tabel itu. Nambah entitas = edit `entities.json` lalu `python3 links.py --backfill --apply` di plugin — bukan edit route. (`vania-obsidian-export.py` masih punya salinan kamus lama.)
 - **Posisi node graph dipersist ke `localStorage`** per browser, dan update graph itu **incremental** — objek node lama di-`Object.assign` supaya `x/y/fx/fy` gak keinjek data baru (`fd4abb2`, `63183ea`). Jangan ganti ke rebuild total tiap poll.
 - Graph pernah crash saat `x/y` node belum finite di frame pertama (`01a1414`) — jaga guard-nya kalau nyentuh render canvas.
 - `ForceGraph2D` di-import `next/dynamic` dengan `ssr: false`. Wajib, dia butuh `window`.
