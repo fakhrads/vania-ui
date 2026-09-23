@@ -52,7 +52,7 @@ Perintah: `bun run dev` · `bun run build` · `bun run lint` · `bun run typeche
 | `/observations` | `/api/observations` | `vania_obs_active`, filter status pending/confirmed/contradicted |
 | `/login` | `/api/auth` | form masuk |
 
-Navigasi di `src/components/sidebar.tsx` — desktop sidebar tetap, mobile top-bar + drawer. Nambah halaman = tambah entri di array `links` situ juga.
+Navigasi di `src/components/sidebar.tsx` — desktop rel kiri menempel, mobile bar bawah + sheet "Lainnya". Daftar menunya di `src/lib/nav.ts`.
 
 ### Hal yang gampang kejeblos
 
@@ -67,8 +67,10 @@ Navigasi di `src/components/sidebar.tsx` — desktop sidebar tetap, mobile top-b
 
 - **Bahasa Indonesia** buat UI, komentar kode, dan pesan commit (`feat:`/`fix:` + deskripsi Indonesia). Ikutin gaya yang udah ada.
 - Komentar kode di repo ini menjelaskan **kenapa**, sering nyebut gejala yang diperbaiki. Pertahankan pola itu, jangan komentar yang cuma ngulang kode.
-- Tema **gelap saja** — `<html className="dark">` di-hardcode di `layout.tsx`, gak ada toggle. Font Noto Sans via `next/font/google`.
-- Bahasa visual: kelas kustom `.glass`, `.mesh-bg`, `.graph-dots`, `.live-dot` di `src/app/globals.css`; sudut `rounded-2xl`/`rounded-3xl`; palet zinc + aksen sky/violet; status pakai `Tone` (`ok` emerald / `warn` amber / `bad` rose / `idle` zinc) dari `monitor.tsx` — pakai `StatusDot`/`Pill`/`Stat`/`Bars` dari situ, jangan bikin warna status sendiri.
+- Tema terang + gelap, toggle 3 posisi (terang/sistem/gelap) di sidebar; skrip boot di `<head>` (`src/lib/theme.tsx`) mencegah kedip. Font: Geist (teks), Geist Mono (`.num`, angka & ID), Instrument Serif (`.display`, judul & angka utama — satu bobot saja, jangan dipasangi `font-semibold`).
+- Bahasa visual **"Ledger"** (kertas & tinta): permukaan datar dipisah garis 1px, bukan bayangan. Kelas `.panel`/`.raised`/`.overlay`/`.well`, `.kicker` (label mono kapital), `.leader` (garis titik label↔nilai) di `globals.css`. Warna hanya untuk data; chrome pakai token tinta `tx-1..3`. Status pakai `Tone` (`ok`/`warn`/`bad`/`idle`) dari `monitor.tsx` — `StatusDot` beda **bentuk** per tone (● ▲ ◆ ○), jangan bikin tanda status sendiri. `text-brass` khusus logo.
+- Kepala halaman wajib `PageHeader` (`src/components/page-header.tsx`); filter/cari/paginasi pakai `Segmented`/`SearchField`/`Pager` (`src/components/controls.tsx`). Menu & nomor urut halaman dari `src/lib/nav.ts` — nambah halaman cukup di situ.
+- Warna canvas graph di-hardcode hex di `CANVAS` (`src/app/graph/page.tsx`) sebagai kembaran token oklch — ubah token, ubah di sana juga.
 - Primitif shadcn ada di `src/components/ui/`; alias path `@/*` → `src/*`.
 
 ### Deploy
