@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Hanken_Grotesk, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { themeBootScript } from "@/lib/theme";
 
-/* Tiga suara: Geist buat teks kerja, Geist Mono buat angka & ID (lebar
+/* Tiga suara: Hanken Grotesk buat teks kerja (grotesk hangat — Geist terasa
+   terlalu dingin di atas kertas), Geist Mono buat angka & ID (lebar
    digitnya seragam, jadi angka yang berdetak tiap 5 detik tidak menggeser
    layout), Instrument Serif cuma buat judul & angka utama. */
-const sans = Geist({
+const sans = Hanken_Grotesk({
   variable: "--font-sans",
   subsets: ["latin"],
 });
