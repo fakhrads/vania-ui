@@ -5,10 +5,8 @@ import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
 import { Panel, Pill, StatusDot, useLive } from "@/components/monitor";
 import { cn } from "@/lib/utils";
-import {
-  WalletCards, ExternalLink, Copy, Check, ArrowDownLeft, ArrowUpRight,
-  ShieldCheck, RefreshCw, Layers, Coins, Landmark
-} from "lucide-react";
+import { RefreshCw, Copy, Check, ExternalLink, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 
 type NetworkInfo = {
   name: string;
@@ -52,57 +50,50 @@ export default function WalletPage() {
       <div className="flex min-h-screen flex-col lg:flex-row">
         <Sidebar />
 
-        <main className="flex-1 overflow-y-auto px-6 pb-28 pt-8 lg:px-10 lg:pb-8">
-          <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">
-                Autonomous Agent Wallet
-              </h1>
-              <p className="mt-1 text-sm text-tx-3">
-                Multi-Chain EVM (Polygon PoS &amp; Arbitrum One) · Hot Wallet &amp; Micropayments
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
+        <main className="min-w-0 flex-1 px-5 pb-28 pt-7 sm:px-8 lg:px-12 lg:pb-12 lg:pt-10">
+          <PageHeader
+            title="Agent wallet"
+            actions={
               <button
                 onClick={refresh}
-                className="panel flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-medium text-tx-2 hover:text-tx-1 transition-all"
+                className="flex items-center gap-2 rounded-md border border-line bg-surf-1 px-3 py-1.5 text-[12.5px] text-tx-1 transition-colors hover:border-tx-3"
               >
-                <RefreshCw className="size-3.5" />
-                Refresh On-Chain
+                <RefreshCw className="size-3.5 text-tx-3" /> Segarkan on-chain
               </button>
-            </div>
-          </header>
+            }
+          >
+            EVM multi-chain (Polygon PoS &amp; Arbitrum One) · hot wallet &amp; micropayment.
+          </PageHeader>
 
           {err && (
-            <Panel className="mb-6 border border-bad/30 bg-bad-tint/30 p-4 text-sm text-bad">
-              Gagal memuat on-chain data: {err}
-            </Panel>
+            <div className="mb-6 flex items-center gap-2 rounded-md border border-bad/40 bg-bad-tint px-3.5 py-2.5 text-[13px] text-bad">
+              <StatusDot tone="bad" size={8} /> Gagal memuat data on-chain: {err}
+            </div>
           )}
 
-          {/* Wallet Address & Network Header */}
-          <Panel level={2} className="mb-6 overflow-hidden p-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-xs font-medium text-tx-3">
-                  <span className="flex size-2 rounded-full bg-ok animate-pulse" />
-                  <span>Jaringan Terhubung: <strong className="text-tx-1">Polygon PoS &amp; Arbitrum One</strong></span>
-                </div>
-                <div className="flex items-center gap-2 pt-1">
-                  <span className="font-mono text-base font-semibold text-tx-1 sm:text-lg">
-                    {data?.walletAddress || "Memuat address…"}
+          {/* Alamat — dicetak besar, karena itu identitas dompetnya. */}
+          <Panel className="mb-6 overflow-hidden">
+            <div className="flex flex-wrap items-end justify-between gap-4 p-6">
+              <div className="min-w-0 space-y-2">
+                <p className="kicker flex items-center gap-2">
+                  <StatusDot tone="ok" live size={7} /> Terhubung · Polygon PoS &amp; Arbitrum One
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="num break-all text-[17px] font-medium text-tx-1 sm:text-[22px]">
+                    {data?.walletAddress || "Memuat alamat…"}
                   </span>
                   {data?.walletAddress && (
                     <button
                       onClick={() => copyAddress(data.walletAddress)}
-                      title="Salin Address"
-                      className="rounded-lg p-1.5 text-tx-3 transition-colors hover:bg-sunken hover:text-tx-1"
+                      title="Salin alamat"
+                      aria-label="Salin alamat"
+                      className="shrink-0 rounded-md p-1.5 text-tx-3 transition-colors hover:bg-sunken hover:text-tx-1"
                     >
                       {copied ? <Check className="size-4 text-ok" /> : <Copy className="size-4" />}
                     </button>
                   )}
                 </div>
               </div>
-
               <div className="flex flex-wrap items-center gap-2">
                 {data?.networks?.map((net) => (
                   <a
@@ -110,124 +101,94 @@ export default function WalletPage() {
                     href={net.explorerUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="raised flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-medium text-tx-1 transition-colors hover:bg-sunken"
+                    className="flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-[12.5px] text-tx-1 transition-colors hover:border-tx-3"
                   >
-                    {net.name} <ExternalLink className="size-3.5" />
+                    {net.name} <ExternalLink className="size-3.5 text-tx-3" />
                   </a>
                 ))}
               </div>
             </div>
-
-            <div className="mt-5 grid grid-cols-1 gap-4 border-t border-border/40 pt-4 sm:grid-cols-2">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-accent-tint text-accent">
-                  <ShieldCheck className="size-5" />
-                </div>
-                <div className="text-xs">
-                  <span className="text-tx-3">Mode Hot Wallet:</span>
-                  <p className="font-medium text-tx-1">Signer Otonom Agent &amp; Subagent</p>
-                </div>
+            <dl className="grid grid-cols-1 border-t border-line-soft sm:grid-cols-2 sm:divide-x sm:divide-line-soft">
+              <div className="px-6 py-4">
+                <dt className="kicker">Mode hot wallet</dt>
+                <dd className="mt-1 text-[13px] text-tx-1">Signer otonom agent &amp; subagent</dd>
               </div>
-
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-ok-tint text-ok">
-                  <Landmark className="size-5" />
-                </div>
-                <div className="text-xs">
-                  <span className="text-tx-3">Cold Wallet Auto-Sweep:</span>
-                  <p className="font-medium text-tx-1 truncate max-w-[220px]">
-                    {data?.coldWalletRecipient ? data.coldWalletRecipient : "Belum diisi (Stand-by)"}
-                  </p>
-                </div>
+              <div className="border-t border-line-soft px-6 py-4 sm:border-t-0">
+                <dt className="kicker">Auto-sweep cold wallet</dt>
+                <dd className="num mt-1 truncate text-[13px] text-tx-1">
+                  {data?.coldWalletRecipient ? data.coldWalletRecipient : "Belum diisi (stand-by)"}
+                </dd>
               </div>
-            </div>
+            </dl>
           </Panel>
 
-          {/* Multi-Chain Balance Cards */}
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
             {data?.networks ? (
               data.networks.map((net) => (
-                <Panel key={net.chainId} className="p-6 space-y-4">
-                  <div className="flex items-center justify-between border-b border-border/40 pb-3 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="flex size-2 rounded-full bg-accent" />
-                      <strong className="text-sm font-semibold text-tx-1">{net.name}</strong>
-                    </div>
-                    <Pill tone="ok">Active L2</Pill>
+                <Panel key={net.chainId} className="overflow-hidden">
+                  <div className="flex items-center justify-between border-b border-line px-5 py-3">
+                    <span className="text-[13.5px] font-semibold text-tx-1">{net.name}</span>
+                    <Pill tone="ok">aktif · L2</Pill>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="well rounded-xl p-3.5">
-                      <div className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-tx-3 font-medium">
-                        <Coins className="size-3.5 text-emerald-400" /> USDC Balance
-                      </div>
-                      <div className="mt-2 font-mono text-2xl font-semibold text-tx-1">
+                  <div className="grid grid-cols-2 divide-x divide-line-soft">
+                    <div className="px-5 py-4">
+                      <p className="kicker">USDC</p>
+                      <p className="num mt-2 text-[30px] font-medium leading-none text-tx-1">
                         {Number(net.usdc.formatted).toFixed(2)}
-                      </div>
-                      <span className="text-[10px] text-emerald-400 font-mono">Settlement Token</span>
+                      </p>
+                      <p className="mt-1.5 text-[11.5px] text-tx-3">token settlement</p>
                     </div>
-
-                    <div className="well rounded-xl p-3.5">
-                      <div className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-tx-3 font-medium">
-                        <Layers className="size-3.5 text-sky-400" /> Gas Reserve
-                      </div>
-                      <div className="mt-2 font-mono text-2xl font-semibold text-tx-1">
+                    <div className="px-5 py-4">
+                      <p className="kicker">Cadangan gas</p>
+                      <p className="num mt-2 text-[30px] font-medium leading-none text-tx-1">
                         {Number(net.gasToken.formatted).toFixed(4)}
-                      </div>
-                      <span className="text-[10px] text-sky-400 font-mono">{net.gasToken.symbol}</span>
+                      </p>
+                      <p className="num mt-1.5 text-[11.5px] text-tx-3">{net.gasToken.symbol}</p>
                     </div>
                   </div>
                 </Panel>
               ))
             ) : (
-              [1, 2].map((i) => (
-                <Panel key={i} className="h-44 animate-pulse p-6 opacity-40" />
-              ))
+              [1, 2].map((i) => <Panel key={i} className="h-40 animate-pulse opacity-50" />)
             )}
           </div>
 
-          {/* Transactions / Ledger Table */}
-          <Panel className="p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-tx-1">Ledger Transaksi Otonom</h2>
-                <p className="text-xs text-tx-3">Riwayat transfer, sweep profit, dan pemasukan subagent</p>
-              </div>
+          <Panel className="overflow-hidden">
+            <div className="flex items-baseline justify-between gap-3 border-b border-line px-5 py-3">
+              <h2 className="text-[13.5px] font-semibold text-tx-1">Buku besar transaksi</h2>
+              <span className="kicker">transfer · sweep · pemasukan</span>
             </div>
 
             {data?.transactions && data.transactions.length > 0 ? (
-              <div className="divide-y divide-border/40">
-                {data.transactions.map((tx) => (
-                  <div key={tx.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-xs">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "flex size-8 items-center justify-center rounded-lg",
-                        tx.direction === "inbound" ? "bg-ok-tint text-ok" : "bg-accent-tint text-accent"
-                      )}>
-                        {tx.direction === "inbound" ? <ArrowDownLeft className="size-4" /> : <ArrowUpRight className="size-4" />}
+              <div className="divide-y divide-line-soft">
+                {data.transactions.map((tx) => {
+                  const masuk = tx.direction === "inbound";
+                  return (
+                    <div key={tx.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-[13px]">
+                      <div className="flex items-center gap-3">
+                        {masuk ? (
+                          <ArrowDownLeft className="size-4 text-ok" />
+                        ) : (
+                          <ArrowUpRight className="size-4 text-tx-2" />
+                        )}
+                        <div>
+                          <p className="text-tx-1">{masuk ? "Masuk" : "Keluar"} · {tx.token_symbol}</p>
+                          <p className="text-[11.5px] text-tx-3">{tx.memo || "Mikrotransaksi otonom"}</p>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium text-tx-1 capitalize">{tx.direction} ({tx.token_symbol})</div>
-                        <div className="text-[11px] text-tx-3">{tx.memo || "Autonomous Microtransaction"}</div>
+                      <div className="text-right">
+                        <p className={cn("num font-medium", masuk ? "text-ok" : "text-tx-1")}>
+                          {masuk ? "+" : "−"}{tx.amount_formatted} {tx.token_symbol}
+                        </p>
+                        <p className="num text-[11px] text-tx-3">{new Date(tx.created_at).toLocaleString("id-ID")}</p>
                       </div>
                     </div>
-
-                    <div className="text-right">
-                      <div className={cn("font-mono font-medium", tx.direction === "inbound" ? "text-ok" : "text-tx-1")}>
-                        {tx.direction === "inbound" ? "+" : "-"}{tx.amount_formatted} {tx.token_symbol}
-                      </div>
-                      <div className="text-[10.5px] text-tx-3">
-                        {new Date(tx.created_at).toLocaleString("id-ID")}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <div className="well flex h-32 flex-col items-center justify-center rounded-xl text-center text-xs text-tx-3">
-                <WalletCards className="size-6 text-tx-3/50 mb-1" />
-                <span>Belum ada transaksi on-chain yang tercatat.</span>
-                <span className="text-[10px] text-tx-3/70 mt-0.5">Semua pemasukan otomatis tercatat di ledger ini.</span>
+              <div className="px-5 py-10 text-center text-[13px] text-tx-3">
+                Belum ada transaksi on-chain yang tercatat.
               </div>
             )}
           </Panel>

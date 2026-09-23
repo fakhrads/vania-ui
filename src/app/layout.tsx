@@ -1,19 +1,27 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { themeBootScript } from "@/lib/theme";
 
-const sans = IBM_Plex_Sans({
+/* Tiga suara: Geist buat teks kerja, Geist Mono buat angka & ID (lebar
+   digitnya seragam, jadi angka yang berdetak tiap 5 detik tidak menggeser
+   layout), Instrument Serif cuma buat judul & angka utama. */
+const sans = Geist({
   variable: "--font-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
-const mono = IBM_Plex_Mono({
+const mono = Geist_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+});
+
+const display = Instrument_Serif({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -27,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
-      <body className={`${sans.variable} ${mono.variable} font-sans antialiased bg-bg text-tx-1`}>
+      <body className={`${sans.variable} ${mono.variable} ${display.variable} font-sans antialiased bg-bg text-tx-1`}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

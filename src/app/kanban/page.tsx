@@ -3,11 +3,9 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
-import { useLive } from "@/components/monitor";
-import {
-  CheckCircle2, Clock, AlertCircle, PlayCircle,
-  GitBranch, RefreshCw, Layers, Filter
-} from "lucide-react";
+import { useLive, Stat, StatusDot, type Tone } from "@/components/monitor";
+import { GitBranch, RefreshCw, X } from "lucide-react";
+import { PageHeader, LiveStamp } from "@/components/page-header";
 import { cn } from "@/lib/utils";
 
 interface Task {
@@ -43,6 +41,10 @@ interface KanbanData {
   tasks: Task[];
 }
 
+/* Tiap kolom punya tone — nada yang sama dipakai di strip kepala kolom
+   dan di tanda status kartu, jadi kolom bisa dikenali tanpa baca judulnya. */
+const COLUMN_TONE: Record<string, Tone> = { backlog: "idle", in_progress: "accent", review: "warn", done: "ok" };
+
 const COLUMNS = [
   { key: "backlog", label: "Backlog / To Do", filter: (t: Task) => t.status === "backlog" || t.status === "todo" },
   { key: "in_progress", label: "In Progress / Active", filter: (t: Task) => t.status === "in_progress" || t.status === "running" },
@@ -53,7 +55,7 @@ const COLUMNS = [
 export default function KanbanPage() {
   const [selectedBoard, setSelectedBoard] = useState<string>("all");
   const endpoint = selectedBoard === "all" ? "/api/kanban" : `/api/kanban?board=${selectedBoard}`;
-  const { data, refresh } = useLive<KanbanData>(endpoint, 3000);
+  const { data, refresh, at, err } = useLive<KanbanData>(endpoint, 3000);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const boards = data?.boards || [];
@@ -65,216 +67,153 @@ export default function KanbanPage() {
       <div className="flex min-h-screen flex-col lg:flex-row">
         <Sidebar />
 
-        <main className="flex-1 overflow-y-auto px-6 pb-28 pt-8 lg:px-10 lg:pb-8">
-          <div className="space-y-6">
-            {/* Header Soft-Depth */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <h1 className="text-xl font-semibold tracking-tight text-tx-1">Kanban Board & Pipeline</h1>
-                  <span className="live-dot" />
-                </div>
-                <p className="mt-1 text-[13px] text-tx-3">
-                  Pelacakan tugas multi-agent, pipeline autonomous, dan status alur kerja Hermes.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2.5">
-                {/* Board Selector Filter */}
+        <main className="min-w-0 flex-1 px-5 pb-28 pt-7 sm:px-8 lg:px-12 lg:pb-12 lg:pt-10">
+          <PageHeader
+            title="Kanban"
+            actions={
+              <>
                 {boards.length > 0 && (
-                  <div className="well flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[12px] text-tx-2">
-                    <Filter className="size-3.5 text-tx-3" />
-                    <select
-                      value={selectedBoard}
-                      onChange={(e) => setSelectedBoard(e.target.value)}
-                      className="bg-transparent text-tx-1 outline-none cursor-pointer"
-                    >
-                      <option value="all">Semua Board ({boards.length})</option>
-                      {boards.map((b) => (
-                        <option key={b} value={b}>
-                          Board: {b}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <select
+                    value={selectedBoard}
+                    onChange={(e) => setSelectedBoard(e.target.value)}
+                    aria-label="Board"
+                    className="cursor-pointer rounded-md border border-line bg-surf-1 px-2.5 py-1.5 text-[12.5px] text-tx-1 outline-none"
+                  >
+                    <option value="all">Semua board ({boards.length})</option>
+                    {boards.map((b) => (
+                      <option key={b} value={b}>Board: {b}</option>
+                    ))}
+                  </select>
                 )}
-
                 <button
                   onClick={() => refresh()}
-                  className="raised flex items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-medium text-tx-1 transition-transform active:scale-95"
+                  className="flex items-center gap-2 rounded-md border border-line bg-surf-1 px-3 py-1.5 text-[12.5px] text-tx-1 transition-colors hover:border-tx-3"
                 >
-                  <RefreshCw className="size-3.5 text-tx-3" />
-                  Segarkan
+                  <RefreshCw className="size-3.5 text-tx-3" /> Segarkan
                 </button>
-              </div>
+                <LiveStamp at={at} err={err}>
+                  <StatusDot tone={err ? "bad" : "ok"} live={!err} />
+                </LiveStamp>
+              </>
+            }
+          >
+            Pelacakan tugas multi-agent, pipeline otonom, dan status alur kerja Hermes.
+          </PageHeader>
+
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Stat label="Total tugas" value={summary.total} />
+              <Stat label="Berjalan" tone="accent" value={summary.in_progress} />
+              <Stat label="Backlog" value={summary.backlog} />
+              <Stat label="Selesai" tone="ok" value={summary.done} />
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
-              <div className="panel flex flex-col justify-between p-4">
-                <span className="text-[12px] font-medium text-tx-3">Total Tasks</span>
-                <div className="mt-2 flex items-baseline justify-between">
-                  <span className="text-2xl font-semibold tracking-tight text-tx-1">{summary.total}</span>
-                  <Layers className="size-4 text-tx-3" />
-                </div>
-              </div>
-              <div className="panel flex flex-col justify-between p-4">
-                <span className="text-[12px] font-medium text-tx-3">In Progress</span>
-                <div className="mt-2 flex items-baseline justify-between">
-                  <span className="text-2xl font-semibold tracking-tight text-accent-solid">{summary.in_progress}</span>
-                  <PlayCircle className="size-4 text-accent-solid" />
-                </div>
-              </div>
-              <div className="panel flex flex-col justify-between p-4">
-                <span className="text-[12px] font-medium text-tx-3">Backlog</span>
-                <div className="mt-2 flex items-baseline justify-between">
-                  <span className="text-2xl font-semibold tracking-tight text-tx-2">{summary.backlog}</span>
-                  <Clock className="size-4 text-tx-3" />
-                </div>
-              </div>
-              <div className="panel flex flex-col justify-between p-4">
-                <span className="text-[12px] font-medium text-tx-3">Selesai</span>
-                <div className="mt-2 flex items-baseline justify-between">
-                  <span className="text-2xl font-semibold tracking-tight text-emerald-400">{summary.done}</span>
-                  <CheckCircle2 className="size-4 text-emerald-400" />
-                </div>
-              </div>
-            </div>
-
-            {/* Board Columns */}
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               {COLUMNS.map((col) => {
                 const colTasks = tasks.filter(col.filter);
+                const tone = COLUMN_TONE[col.key];
                 return (
-                  <div key={col.key} className="panel flex flex-col rounded-2xl p-3.5">
-                    <div className="flex items-center justify-between px-1 pb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-semibold text-tx-1">{col.label}</span>
-                      </div>
-                      <span className="well rounded-lg px-2 py-0.5 text-[11px] font-medium text-tx-3">
-                        {colTasks.length}
+                  <section key={col.key} className="flex flex-col">
+                    <div className="mb-2.5 flex items-center justify-between border-b-2 border-tx-1 pb-2">
+                      <span className="flex items-center gap-2 text-[13px] font-semibold text-tx-1">
+                        <StatusDot tone={tone} size={8} />
+                        {col.label}
                       </span>
+                      <span className="num text-[12px] text-tx-3">{colTasks.length}</span>
                     </div>
 
-                    <div className="well flex-1 space-y-2.5 rounded-xl p-2 min-h-[420px] overflow-y-auto">
+                    <div className="min-h-[200px] flex-1 space-y-2 xl:min-h-[420px]">
                       {colTasks.length === 0 ? (
-                        <div className="flex h-32 items-center justify-center text-[12px] text-tx-3">
+                        <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-line text-[12px] text-tx-3">
                           Kosong
                         </div>
                       ) : (
                         colTasks.map((t) => (
-                          <div
+                          <button
                             key={t.id}
                             onClick={() => setSelectedTask(t)}
                             className={cn(
-                              "raised cursor-pointer rounded-xl p-3 text-left transition-all hover:border-accent-border/50",
-                              selectedTask?.id === t.id && "border-accent-solid ring-1 ring-accent-solid/30"
+                              "panel panel-hover block w-full rounded-lg p-3 text-left",
+                              selectedTask?.id === t.id && "!border-tx-1"
                             )}
                           >
                             <div className="flex items-start justify-between gap-2">
-                              <span className="line-clamp-2 text-[13px] font-medium text-tx-1">
-                                {t.title}
-                              </span>
+                              <span className="line-clamp-2 text-[13px] font-medium text-tx-1">{t.title}</span>
                               {t.priority > 0 && (
-                                <span className="shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                                <span className="num shrink-0 rounded-[4px] bg-warn-tint px-1.5 py-px text-[10.5px] font-medium text-warn">
                                   P{t.priority}
                                 </span>
                               )}
                             </div>
-
                             {t.body && (
-                              <p className="mt-1.5 line-clamp-2 text-[11.5px] text-tx-3">
-                                {t.body}
-                              </p>
+                              <p className="mt-1.5 line-clamp-2 text-[12px] text-tx-3">{t.body}</p>
                             )}
-
-                            <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px] text-tx-3">
+                            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-tx-3">
                               {t.board_slug && t.board_slug !== "default" && (
-                                <span className="well rounded-md px-1.5 py-0.5 text-accent-solid font-medium text-[10px]">
-                                  {t.board_slug}
-                                </span>
+                                <span className="num text-accent-solid">{t.board_slug}</span>
                               )}
-                              {t.assignee && (
-                                <span className="well rounded-md px-1.5 py-0.5 text-tx-2">
-                                  {t.assignee}
-                                </span>
-                              )}
+                              {t.assignee && <span className="text-tx-2">@{t.assignee}</span>}
                               {t.branch_name && (
-                                <span className="flex items-center gap-1 well rounded-md px-1.5 py-0.5 text-tx-3 font-mono text-[10px]">
+                                <span className="num flex items-center gap-1">
                                   <GitBranch className="size-3" />
                                   {t.branch_name}
                                 </span>
                               )}
                               {t.consecutive_failures > 0 && (
-                                <span className="flex items-center gap-1 rounded-md bg-rose-500/10 px-1.5 py-0.5 text-rose-400 text-[10px]">
-                                  <AlertCircle className="size-3" />
-                                  {t.consecutive_failures} fail
+                                <span className="flex items-center gap-1 text-bad">
+                                  <StatusDot tone="bad" size={7} />
+                                  {t.consecutive_failures} gagal
                                 </span>
                               )}
                             </div>
-                          </div>
+                          </button>
                         ))
                       )}
                     </div>
-                  </div>
+                  </section>
                 );
               })}
             </div>
 
-            {/* Task Detail Drawer / Modal View */}
             {selectedTask && (
-              <div className="panel space-y-4 rounded-2xl p-5 border border-accent-border/30">
+              <div className="panel space-y-4 rounded-xl p-5">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="well rounded-md px-2 py-0.5 font-mono text-[11px] text-tx-3">
-                        {selectedTask.id}
-                      </span>
-                      <span className="rounded-md bg-accent-solid/10 px-2 py-0.5 text-[11px] font-medium text-accent-solid">
-                        {selectedTask.status}
-                      </span>
-                      {selectedTask.board_slug && (
-                        <span className="well rounded-md px-2 py-0.5 text-[11px] text-tx-3 font-mono">
-                          board: {selectedTask.board_slug}
-                        </span>
-                      )}
+                  <div className="min-w-0">
+                    <div className="kicker flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="text-tx-2">{selectedTask.status}</span>
+                      <span className="!normal-case !tracking-normal">{selectedTask.id}</span>
+                      {selectedTask.board_slug && <span>board · {selectedTask.board_slug}</span>}
                     </div>
-                    <h3 className="mt-2 text-base font-semibold text-tx-1">{selectedTask.title}</h3>
+                    <h3 className="display mt-2 text-[28px] text-tx-1">{selectedTask.title}</h3>
                   </div>
                   <button
                     onClick={() => setSelectedTask(null)}
-                    className="well rounded-lg px-2.5 py-1 text-[12px] text-tx-3 hover:text-tx-1"
+                    aria-label="Tutup"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-md border border-line text-tx-2 hover:text-tx-1"
                   >
-                    Tutup
+                    <X className="size-4" />
                   </button>
                 </div>
 
                 {selectedTask.body && (
-                  <div className="well rounded-xl p-3.5 text-[12.5px] leading-relaxed text-tx-2 font-mono whitespace-pre-wrap">
+                  <div className="num whitespace-pre-wrap rounded-md border border-line-soft bg-sunken p-3.5 text-[12.5px] leading-relaxed text-tx-2">
                     {selectedTask.body}
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-3 text-[12px] sm:grid-cols-4">
-                  <div className="panel p-3">
-                    <span className="text-tx-3">Assignee:</span>
-                    <p className="mt-1 font-medium text-tx-1">{selectedTask.assignee || "—"}</p>
-                  </div>
-                  <div className="panel p-3">
-                    <span className="text-tx-3">Model Override:</span>
-                    <p className="mt-1 font-mono text-tx-1">{selectedTask.model_override || "default"}</p>
-                  </div>
-                  <div className="panel p-3">
-                    <span className="text-tx-3">Worker PID:</span>
-                    <p className="mt-1 font-mono text-tx-1">{selectedTask.worker_pid || "—"}</p>
-                  </div>
-                  <div className="panel p-3">
-                    <span className="text-tx-3">Dibuat:</span>
-                    <p className="mt-1 text-tx-1">
-                      {new Date(selectedTask.created_at * 1000).toLocaleString("id-ID")}
-                    </p>
-                  </div>
-                </div>
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-line-soft pt-4 text-[12.5px] sm:grid-cols-4">
+                  {[
+                    ["Assignee", selectedTask.assignee || "—"],
+                    ["Model override", selectedTask.model_override || "default"],
+                    ["Worker PID", selectedTask.worker_pid || "—"],
+                    ["Dibuat", new Date(selectedTask.created_at * 1000).toLocaleString("id-ID")],
+                  ].map(([k, v]) => (
+                    <div key={k as string}>
+                      <dt className="kicker">{k}</dt>
+                      <dd className="num mt-1 text-tx-1">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
             )}
           </div>

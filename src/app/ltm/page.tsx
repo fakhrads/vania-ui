@@ -6,7 +6,9 @@ import { Guard } from "@/components/guard";
 import { Panel, Pill, KIND_CLASS } from "@/components/monitor";
 import { authFetch } from "@/lib/auth-fetch";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, Lock, Globe, Zap, AlertTriangle, Lightbulb, RefreshCw } from "lucide-react";
+import { Lock, Globe, AlertTriangle, Lightbulb, RefreshCw } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { Segmented, SearchField, Pager } from "@/components/controls";
 
 type Row = {
   id: number; content: string; content_hash: string; scope: string;
@@ -63,188 +65,115 @@ export default function Korpus() {
     <div className="flex min-h-screen flex-col lg:flex-row">
       <Sidebar />
 
-      <main className="flex-1 overflow-y-auto px-6 pb-28 pt-8 lg:px-10 lg:pb-8">
-        <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">Korpus Memori</h1>
-            <p className="mt-1 text-sm text-tx-3">
-              <span className="num">{total.toLocaleString("id-ID")}</span> baris di{" "}
-              <span className="num text-tx-2">vania_ltm</span> · dilengkapi Lapis Fitness & MemRL
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSort(s => s === "created_at" ? "fitness" : "created_at")}
-              className={cn(
-                "flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-medium transition-all",
-                sort === "fitness"
-                  ? "bg-accent text-white shadow-sm"
-                  : "panel text-tx-2 hover:text-tx-1"
-              )}
-            >
-              <Zap className="size-3.5" />
-              {sort === "fitness" ? "Urut: Fitness Tertinggi" : "Urut: Terbaru"}
-            </button>
-          </div>
-        </header>
+      <main className="min-w-0 flex-1 px-5 pb-28 pt-7 sm:px-8 lg:px-12 lg:pb-12 lg:pt-10">
+        <PageHeader
+          title="Korpus memori"
+          actions={
+            <Segmented
+              label="Urut"
+              value={sort}
+              onChange={(v) => { setSort(v); setPage(1); }}
+              options={[
+                { value: "created_at", label: "Terbaru" },
+                { value: "fitness", label: "Fitness" },
+              ]}
+            />
+          }
+        >
+          <span className="num text-tx-2">{total.toLocaleString("id-ID")}</span> baris di{" "}
+          <span className="num text-tx-2">vania_ltm</span> · dilengkapi Lapis Fitness &amp; MemRL
+        </PageHeader>
 
-        <Panel className="mb-4 flex flex-col gap-3 p-4">
+        <div className="mb-5 space-y-3">
           <div className="flex flex-wrap items-center gap-3">
-            <input
+            <SearchField
               value={q}
               onChange={(e) => { setQ(e.target.value); setPage(1); }}
               placeholder="Cari isi memori…"
-              className="well min-w-[16rem] flex-1 rounded-xl px-4 py-2.5 text-sm text-tx-1 placeholder:text-tx-3 outline-none"
             />
-            <div className="flex items-center gap-1">
-              {["", "fakhri", "abiane"].map((s) => (
-                <button
-                  key={s || "all"}
-                  onClick={() => { setScope(s); setPage(1); }}
-                  className={cn(
-                    "rounded-xl px-3 py-2 text-xs font-medium transition-colors",
-                    scope === s ? "raised text-tx-1" : "text-tx-3 hover:bg-sunken"
-                  )}
-                >
-                  {s || "semua scope"}
-                </button>
-              ))}
-            </div>
+            <Segmented
+              value={scope}
+              onChange={(v) => { setScope(v); setPage(1); }}
+              options={["", "fakhri", "abiane"].map((s) => ({ value: s, label: s || "semua" }))}
+            />
           </div>
-
-          <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-border/40">
-            <span className="text-[11px] font-medium text-tx-3 mr-2">Tier:</span>
-            {KINDS.map((k) => (
-              <button
-                key={k || "all"}
-                onClick={() => { setKind(k); setPage(1); }}
-                className={cn(
-                  "rounded-full px-3 py-1 text-xs transition-colors",
-                  kind === k
-                    ? "raised text-tx-1 font-medium"
-                    : "text-tx-3 hover:bg-sunken"
-                )}
-              >
-                {k || "semua tier"}
-              </button>
-            ))}
-          </div>
-        </Panel>
-
-        <div className="space-y-2">
-          {loading && !rows.length ? (
-            [...Array(6)].map((_, i) => (
-              <Panel key={i} className="h-24 animate-pulse p-5 opacity-40" />
-            ))
-          ) : rows.length ? (
-            rows.map((r) => (
-              <Panel key={r.id} hover className="p-5">
-                <div className="mb-2.5 flex flex-wrap items-center gap-2">
-                  <span className={cn("num rounded-full px-2.5 py-0.5 text-[11px] font-medium", KIND_CLASS[r.kind] || "text-tx-2 bg-idle-tint")}>
-                    {r.kind}
-                  </span>
-                  <span className="rounded-full bg-idle-tint px-2.5 py-0.5 text-[11px] text-tx-2">
-                    {r.scope}
-                  </span>
-
-                  {r.kind === "quarantine" && (
-                    <Pill tone="bad" className="text-[10.5px]">
-                      <AlertTriangle className="size-3" />
-                      BELUM TERVERIFIKASI
-                    </Pill>
-                  )}
-
-                  {r.kind === "reasoning" && (
-                    <Pill tone="purple" className="text-[10.5px]">
-                      <Lightbulb className="size-3" />
-                      Pelajaran/Strategi
-                    </Pill>
-                  )}
-
-                  {r.kind === "resampled" && (
-                    <Pill tone="accent" className="text-[10.5px]">
-                      <RefreshCw className="size-3" />
-                      Resampled
-                    </Pill>
-                  )}
-
-                  {r.audience && (
-                    <Pill tone={r.audience === "private" ? "idle" : "ok"}>
-                      {r.audience === "private" ? <Lock className="size-3" /> : <Globe className="size-3" />}
-                      {r.audience}
-                    </Pill>
-                  )}
-
-                  {/* Fitness Badge */}
-                  <div className="flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-0.5 border border-border/50">
-                    <Zap className="size-3 text-amber-400" />
-                    <span className="num text-[11px] font-semibold text-tx-1">
-                      {Number(r.fitness).toFixed(3)}
-                    </span>
-                    <span className="text-[10px] text-tx-3">fit</span>
-                  </div>
-
-                  <span className="num ml-auto text-[11px] text-tx-3">
-                    #{r.id} · {new Date(r.updated_at).toLocaleDateString("id-ID")}
-                  </span>
-                </div>
-
-                <p className="text-sm leading-relaxed text-tx-1">{r.content}</p>
-
-                <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-border/30 pt-2.5 text-[11px] text-tx-3">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span>
-                      Recall: <strong className="text-tx-2 num">{r.retrieval_count}</strong>
-                    </span>
-                    <span>
-                      Success: <strong className="text-ok num">{r.success_count}</strong>
-                    </span>
-                    <span>
-                      Reward: <strong className="text-sky-400 num">{r.human_reward}</strong>
-                    </span>
-                    <span>
-                      Contradiction: <strong className={cn("num", r.contradiction_count > 0 ? "text-bad" : "text-tx-3")}>{r.contradiction_count}</strong>
-                    </span>
-                    {r.last_used_at && (
-                      <span className="text-[10px] text-tx-3">
-                        Dipakai: {new Date(r.last_used_at).toLocaleDateString("id-ID")}
-                      </span>
-                    )}
-                  </div>
-                  <div className="num text-[10px] text-tx-3">
-                    {r.provenance} · {r.content_hash?.slice(0, 12)}…
-                  </div>
-                </div>
-              </Panel>
-            ))
-          ) : (
-            <Panel className="p-10 text-center text-sm text-tx-3">
-              Tidak ada baris yang cocok.
-            </Panel>
-          )}
+          <Segmented
+            label="Tier"
+            value={kind}
+            onChange={(v) => { setKind(v); setPage(1); }}
+            options={KINDS.map((k) => ({ value: k, label: k || "semua" }))}
+          />
         </div>
 
-        {pages > 1 && (
-          <div className="mt-6 flex items-center justify-center gap-3">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="raised rounded-xl p-2.5 text-tx-1 disabled:opacity-40 disabled:shadow-none"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-            <span className="num text-sm text-tx-2">
-              {page} / {pages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(pages, p + 1))}
-              disabled={page === pages}
-              className="raised rounded-xl p-2.5 text-tx-1 disabled:opacity-40 disabled:shadow-none"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
-        )}
+        {/* Satu buku besar, baris dipisah garis — bukan kartu per baris.
+            Dua puluh lima entri jadi muat lebih banyak per layar. */}
+        <Panel className="divide-y divide-line-soft overflow-hidden">
+          {loading && !rows.length ? (
+            [...Array(6)].map((_, i) => <div key={i} className="h-24 animate-pulse bg-sunken/50" />)
+          ) : rows.length ? (
+            rows.map((r) => (
+              <article key={r.id} className="grid gap-x-6 gap-y-2 px-5 py-4 transition-colors hover:bg-sunken/60 md:grid-cols-[150px_1fr]">
+                <div className="flex flex-wrap items-start gap-1.5 md:flex-col md:gap-2">
+                  <span className="num text-[11px] text-tx-3">
+                    #{r.id} · {new Date(r.updated_at).toLocaleDateString("id-ID")}
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className={cn("num rounded-[4px] px-1.5 py-px text-[11px] font-medium", KIND_CLASS[r.kind] || "bg-idle-tint text-tx-2")}>
+                      {r.kind}
+                    </span>
+                    <span className="num rounded-[4px] border border-line px-1.5 py-px text-[11px] text-tx-2">
+                      {r.scope}
+                    </span>
+                  </div>
+                  <span className="num flex items-baseline gap-1 text-[11px] text-tx-3">
+                    fit <span className="text-[13px] font-medium text-tx-1">{Number(r.fitness).toFixed(3)}</span>
+                  </span>
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-[14px] leading-relaxed text-tx-1">{r.content}</p>
+
+                  <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px] text-tx-3">
+                    {r.kind === "quarantine" && (
+                      <Pill tone="bad"><AlertTriangle className="size-3" /> belum terverifikasi</Pill>
+                    )}
+                    {r.kind === "reasoning" && (
+                      <Pill tone="purple"><Lightbulb className="size-3" /> pelajaran/strategi</Pill>
+                    )}
+                    {r.kind === "resampled" && (
+                      <Pill tone="accent"><RefreshCw className="size-3" /> resampled</Pill>
+                    )}
+                    {r.audience && (
+                      <span className="flex items-center gap-1">
+                        {r.audience === "private" ? <Lock className="size-3" /> : <Globe className="size-3 text-ok" />}
+                        {r.audience}
+                      </span>
+                    )}
+                    <span>recall <b className="num font-medium text-tx-2">{r.retrieval_count}</b></span>
+                    <span>sukses <b className="num font-medium text-ok">{r.success_count}</b></span>
+                    <span>reward <b className="num font-medium text-read">{r.human_reward}</b></span>
+                    <span>
+                      kontradiksi{" "}
+                      <b className={cn("num font-medium", r.contradiction_count > 0 ? "text-bad" : "text-tx-2")}>
+                        {r.contradiction_count}
+                      </b>
+                    </span>
+                    {r.last_used_at && (
+                      <span>dipakai <span className="num">{new Date(r.last_used_at).toLocaleDateString("id-ID")}</span></span>
+                    )}
+                    <span className="num ml-auto text-[10.5px]">
+                      {r.provenance} · {r.content_hash?.slice(0, 12)}…
+                    </span>
+                  </div>
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="p-10 text-center text-sm text-tx-3">Tidak ada baris yang cocok.</div>
+          )}
+        </Panel>
+
+        <Pager page={page} pages={pages} onPage={setPage} total={total} />
       </main>
     </div>
     </Guard>

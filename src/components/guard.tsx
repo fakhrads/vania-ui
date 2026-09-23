@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { Brain } from "lucide-react";
+import { CaduceusMark } from "@/components/brand";
 
 /**
  * Gerbang auth seragam.
@@ -24,16 +24,13 @@ export function Guard({ children }: { children: React.ReactNode }) {
   if (loading || !token) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg p-4">
-        <div className="panel flex items-center gap-3.5 rounded-2xl px-6 py-5">
-          <div className="raised flex size-10 items-center justify-center rounded-xl text-accent-solid">
-            <Brain className="size-4 animate-pulse" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-tx-1">Caduceus</p>
-            <p className="text-xs text-tx-3">
-              {loading ? "Memeriksa sesi…" : "Mengarahkan ke masuk…"}
-            </p>
-          </div>
+        <div className="flex flex-col items-center text-center">
+          <CaduceusMark className="size-10 text-brass" />
+          <p className="display mt-4 text-[30px] text-tx-1">Caduceus</p>
+          <p className="kicker mt-3 flex items-center gap-2">
+            <span className="mark mark-idle size-[7px] text-tx-3" />
+            {loading ? "Memeriksa sesi…" : "Mengarahkan ke masuk…"}
+          </p>
         </div>
       </div>
     );

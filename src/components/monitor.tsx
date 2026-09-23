@@ -24,7 +24,7 @@ export function Panel({
         level === 2 && "raised-2",
         level === 3 && "overlay",
         hover && "panel-hover",
-        "rounded-2xl",
+        "rounded-xl",
         className
       )}
     >
@@ -37,40 +37,47 @@ export function Panel({
 
 export type Tone = "ok" | "warn" | "bad" | "idle" | "accent" | "purple";
 
-const TONE: Record<Tone, { text: string; tint: string; ring: string }> = {
-  ok:     { text: "text-ok",     tint: "bg-ok-tint",     ring: "var(--ok)" },
-  warn:   { text: "text-warn",   tint: "bg-warn-tint",   ring: "var(--warn)" },
-  bad:    { text: "text-bad",    tint: "bg-bad-tint",    ring: "var(--bad)" },
-  idle:   { text: "text-tx-2",   tint: "bg-idle-tint",   ring: "var(--idle)" },
-  accent: { text: "text-accent", tint: "bg-accent-tint", ring: "var(--accent)" },
-  purple: { text: "text-purple-400", tint: "bg-purple-500/15", ring: "#c084fc" },
+const TONE: Record<Tone, { text: string; tint: string; mark: string; ring: string }> = {
+  ok:     { text: "text-ok",           tint: "bg-ok-tint",     mark: "mark-ok",   ring: "var(--ok)" },
+  warn:   { text: "text-warn",         tint: "bg-warn-tint",   mark: "mark-warn", ring: "var(--warn)" },
+  bad:    { text: "text-bad",          tint: "bg-bad-tint",    mark: "mark-bad",  ring: "var(--bad)" },
+  idle:   { text: "text-tx-2",         tint: "bg-idle-tint",   mark: "mark-idle", ring: "var(--idle)" },
+  accent: { text: "text-accent-solid", tint: "bg-accent-tint", mark: "mark-ok",   ring: "var(--accent-solid)" },
+  purple: { text: "text-entity",       tint: "bg-idle-tint",   mark: "mark-ok",   ring: "var(--entity)" },
 };
 
 /**
- * Penanda status. Bentuknya berbeda per tone, bukan cuma warnanya.
+ * Penanda status. Bentuknya berbeda per tone, bukan cuma warnanya
+ * (lihat .mark-* di globals.css): ok bulat, warn segitiga, bad belah
+ * ketupat, idle cincin kosong. `live` menambah denyut cincin di belakang
+ * tanda — satu-satunya animasi loop yang dibolehkan di dasbor ini.
  */
 export function StatusDot({
   tone,
   live = false,
-  size = 10,
+  size = 9,
 }: {
   tone: Tone;
   live?: boolean;
   size?: number;
 }) {
-  return (
+  const shape = (
     <span
-      className={cn(
-        "inline-block rounded-full transition-all",
-        live && "animate-pulse",
-        TONE[tone].tint
-      )}
-      style={{
-        width: size,
-        height: size,
-        boxShadow: `0 0 0 2px ${TONE[tone].ring}`,
-      }}
+      aria-hidden
+      className={cn("mark", TONE[tone].mark, TONE[tone].text)}
+      style={{ width: size, height: size }}
     />
+  );
+  if (!live) return shape;
+  return (
+    <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
+      <span
+        aria-hidden
+        className="live-dot absolute inset-0 rounded-full"
+        style={{ ["--ring-color" as string]: `color-mix(in oklch, ${TONE[tone].ring} 55%, transparent)` }}
+      />
+      {shape}
+    </span>
   );
 }
 
@@ -86,7 +93,7 @@ export function Pill({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-[5px] px-2 py-0.5 text-[11.5px] font-medium",
         TONE[tone].tint,
         TONE[tone].text,
         className
@@ -97,6 +104,10 @@ export function Pill({
   );
 }
 
+/**
+ * Sel angka. Datar, dengan strip nada 2px di tepi atas — di barisan
+ * empat sel, mata langsung menemukan yang bukan tinta biasa.
+ */
 export function Stat({
   label,
   value,
@@ -111,13 +122,19 @@ export function Stat({
   className?: string;
 }) {
   return (
-    <Panel hover className={cn("p-5", className)}>
-      <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.14em] text-tx-3">
-        <StatusDot tone={tone} />
+    <Panel className={cn("relative overflow-hidden p-5", className)}>
+      <span
+        aria-hidden
+        className={cn("absolute inset-x-0 top-0 h-[2px]", tone === "idle" ? "bg-line" : "bg-current", TONE[tone].text)}
+      />
+      <div className="kicker flex items-center gap-2">
+        <StatusDot tone={tone} size={7} />
         {label}
       </div>
-      <div className={cn("num mt-3 text-3xl font-semibold", TONE[tone].text)}>{value}</div>
-      {sub ? <div className="mt-1.5 text-xs text-tx-3">{sub}</div> : null}
+      <div className={cn("num mt-4 text-[34px] font-medium leading-none", tone === "idle" ? "text-tx-1" : TONE[tone].text)}>
+        {value}
+      </div>
+      {sub ? <div className="mt-2.5 text-xs text-tx-3">{sub}</div> : null}
     </Panel>
   );
 }
@@ -177,7 +194,7 @@ export const KIND_CLASS: Record<string, string> = {
   active: "text-active bg-ok-tint",
   evicted: "text-evicted bg-warn-tint",
   archive: "text-tx-2 bg-idle-tint",
-  resampled: "text-sky-400 bg-sky-500/15",
-  reasoning: "text-purple-400 bg-purple-500/15",
-  quarantine: "text-rose-400 bg-rose-500/15 border border-rose-500/30",
+  resampled: "text-seed bg-idle-tint",
+  reasoning: "text-entity bg-idle-tint",
+  quarantine: "text-bad bg-bad-tint ring-1 ring-inset ring-bad/40",
 };

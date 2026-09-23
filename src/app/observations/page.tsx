@@ -5,9 +5,10 @@ import { useAuth } from "@/lib/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
 import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
-import { Panel, Pill, type Tone } from "@/components/monitor";
+import { Panel, StatusDot, type Tone } from "@/components/monitor";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { Segmented, SearchField, Pager } from "@/components/controls";
 
 interface ObsItem {
   id: number;
@@ -69,96 +70,63 @@ export default function ObservationsPage() {
     <Guard>
     <div className="flex min-h-screen flex-col lg:flex-row">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto px-6 pb-28 pt-8 lg:px-10 lg:pb-8">
-        <header className="mb-6">
-          <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">Observasi</h1>
-          <p className="mt-1 text-sm text-tx-3">
-            <span className="num">{total.toLocaleString("id-ID")}</span> fakta dari percakapan ·{" "}
-            <span className="num text-tx-2">vania_obs_active</span>
-          </p>
-        </header>
+      <main className="min-w-0 flex-1 px-5 pb-28 pt-7 sm:px-8 lg:px-12 lg:pb-12 lg:pt-10">
+        <PageHeader title="Observasi">
+          <span className="num text-tx-2">{total.toLocaleString("id-ID")}</span> fakta dari percakapan ·{" "}
+          <span className="num text-tx-2">vania_obs_active</span>
+        </PageHeader>
 
-        <Panel className="mb-4 flex flex-wrap items-center gap-3 p-4">
-          <div className="well flex min-w-[16rem] flex-1 items-center gap-3 rounded-xl px-4 py-2.5">
-            <Search className="size-4 shrink-0 text-tx-3" />
-            <input
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Cari claim…"
-              className="w-full bg-transparent text-sm text-tx-1 outline-none placeholder:text-tx-3"
-            />
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {FILTERS.map((f) => (
-              <button
-                key={f.v || "all"}
-                onClick={() => { setStatusFilter(f.v); setPage(1); }}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-xs transition-colors",
-                  statusFilter === f.v ? "raised text-tx-1" : "text-tx-3 hover:bg-sunken"
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </Panel>
+        <div className="mb-5 flex flex-wrap items-center gap-3">
+          <SearchField
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Cari claim…"
+          />
+          <Segmented
+            value={statusFilter}
+            onChange={(v) => { setStatusFilter(v); setPage(1); }}
+            options={FILTERS.map((f) => ({ value: f.v, label: f.label }))}
+          />
+        </div>
 
-        <div className="space-y-2">
+        <Panel className="divide-y divide-line-soft overflow-hidden">
           {loading && !items.length ? (
-            Array.from({ length: 5 }).map((_, i) => (
-              <Panel key={i} className="h-24 animate-pulse opacity-40" />
-            ))
+            Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 animate-pulse bg-sunken/50" />)
           ) : items.length ? (
             items.map((item) => {
               const st = status(item);
               return (
-                <Panel key={item.id} hover className="p-4">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <Pill tone={st.tone}>{st.label}</Pill>
-                    <span className="num rounded-full bg-idle-tint px-2.5 py-0.5 text-[11px] text-tx-2">
-                      {item.kind}
+                <article key={item.id} className="grid gap-x-6 gap-y-2 px-5 py-4 transition-colors hover:bg-sunken/60 md:grid-cols-[150px_1fr]">
+                  <div className="flex flex-wrap items-center gap-2 md:flex-col md:items-start">
+                    <span className={cn("flex items-center gap-1.5 text-[12px] font-medium",
+                      st.tone === "ok" ? "text-ok" : st.tone === "bad" ? "text-bad" : st.tone === "warn" ? "text-warn" : "text-tx-2")}>
+                      <StatusDot tone={st.tone} size={7} />
+                      {st.label}
                     </span>
-                    <span className="num rounded-full bg-idle-tint px-2.5 py-0.5 text-[11px] text-tx-2">
-                      conf {item.confidence?.toFixed(2) ?? "?"}
+                    <span className="num text-[11px] text-tx-3">
+                      {item.kind} · conf <span className="text-tx-1">{item.confidence?.toFixed(2) ?? "?"}</span>
                     </span>
-                    <span className="num ml-auto text-[11px] text-tx-3">
+                    <span className="num text-[11px] text-tx-3">
                       {new Date(item.created_at).toLocaleDateString("id-ID")}
                     </span>
                   </div>
-                  <p className="text-sm leading-relaxed text-tx-1">{item.claim}</p>
-                  {item.evidence && (
-                    <p className="mt-1.5 text-xs leading-relaxed text-tx-3">
-                      Bukti: {item.evidence.slice(0, 150)}
-                    </p>
-                  )}
-                </Panel>
+                  <div className="min-w-0">
+                    <p className="text-[14px] leading-relaxed text-tx-1">{item.claim}</p>
+                    {item.evidence && (
+                      <p className="mt-2 border-l-2 border-line pl-3 text-[12.5px] leading-relaxed text-tx-3">
+                        {item.evidence.slice(0, 150)}
+                      </p>
+                    )}
+                  </div>
+                </article>
               );
             })
           ) : (
-            <Panel className="p-10 text-center text-sm text-tx-3">Tidak ada observasi yang cocok.</Panel>
+            <div className="p-10 text-center text-sm text-tx-3">Tidak ada observasi yang cocok.</div>
           )}
-        </div>
+        </Panel>
 
-        {totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-center gap-3.5">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="raised rounded-xl p-2.5 text-tx-1 disabled:opacity-40 disabled:shadow-none"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-            <span className="num text-sm text-tx-2">{page} / {totalPages}</span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="raised rounded-xl p-2.5 text-tx-1 disabled:opacity-40 disabled:shadow-none"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
-        )}
+        <Pager page={page} pages={totalPages} onPage={setPage} total={total} />
       </main>
     </div>
     </Guard>

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useRef, useState, useCallback, useEffect, useSyncExternalStore } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
+import { PageHeader } from "@/components/page-header";
 import { Panel, Pill, StatusDot, useLive, type Tone } from "@/components/monitor";
 import { useTheme } from "@/lib/theme";
 import {
@@ -113,45 +114,47 @@ type CanvasPalette = {
 };
 
 const CANVAS: Record<"dark" | "light", CanvasPalette> = {
+  // Nilai hex kembaran token oklch di globals.css (tema Ledger) — canvas
+  // tidak bisa membaca CSS variable, jadi kalau token berubah, ubah di sini juga.
   dark: {
     kind: {
-      seed: "#38bdf8",
-      active: "#34d399",
-      resampled: "#38bdf8",
-      reasoning: "#c084fc",
-      quarantine: "#f43f5e",
-      evicted: "#fbbf24",
-      archive: "#94a3b8",
+      seed: "#6cb4f0",
+      active: "#5fd39a",
+      resampled: "#6cb4f0",
+      reasoning: "#c29af0",
+      quarantine: "#f07a78",
+      evicted: "#f0b25a",
+      archive: "#8d93a3",
     },
-    entity: "#c084fc",
-    fallback: "#8b8f9c",
-    linkIdle: "rgba(255,255,255,0.10)",
-    linkOn: "rgba(255,255,255,0.85)",
-    linkOff: "rgba(255,255,255,0.03)",
-    label: "#dfe2ea",
-    labelEntity: "#e9d5ff",
-    labelBg: "rgba(18,20,26,0.78)",
-    focusRing: "#ffffff",
+    entity: "#c29af0",
+    fallback: "#8d93a3",
+    linkIdle: "rgba(240,233,220,0.10)",
+    linkOn: "rgba(240,233,220,0.85)",
+    linkOff: "rgba(240,233,220,0.03)",
+    label: "#efe9dd",
+    labelEntity: "#e3d2fb",
+    labelBg: "rgba(19,22,29,0.82)",
+    focusRing: "#f3efe6",
   },
   light: {
     kind: {
-      seed: "#1f6fd0",
-      active: "#16855c",
-      resampled: "#0284c7",
-      reasoning: "#7e22ce",
-      quarantine: "#e11d48",
-      evicted: "#a86a06",
-      archive: "#6b7080",
+      seed: "#2a6fc0",
+      active: "#1f7f53",
+      resampled: "#2a6fc0",
+      reasoning: "#7a45c2",
+      quarantine: "#c4302f",
+      evicted: "#b8641a",
+      archive: "#6c7180",
     },
-    entity: "#7b3fd4",
-    fallback: "#6b7080",
-    linkIdle: "rgba(20,24,40,0.14)",
-    linkOn: "rgba(20,24,40,0.75)",
-    linkOff: "rgba(20,24,40,0.04)",
-    label: "#2a2f3d",
-    labelEntity: "#4a1f8f",
-    labelBg: "rgba(255,255,255,0.86)",
-    focusRing: "#14182a",
+    entity: "#7a45c2",
+    fallback: "#6c7180",
+    linkIdle: "rgba(40,34,20,0.14)",
+    linkOn: "rgba(29,33,43,0.75)",
+    linkOff: "rgba(40,34,20,0.04)",
+    label: "#232733",
+    labelEntity: "#4b2385",
+    labelBg: "rgba(251,249,244,0.9)",
+    focusRing: "#1d212b",
   },
 };
 
@@ -697,24 +700,19 @@ export default function GraphPage() {
       <div className="flex min-h-screen flex-col lg:flex-row">
         <Sidebar />
 
-        <main className="flex-1 overflow-y-auto px-6 pb-28 pt-8 lg:overflow-hidden lg:px-10 lg:pb-8">
-          <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">
-                Graph Memori {is3D ? "3D Sphere" : "2D"}
-              </h1>
-              <p className="mt-1 text-sm text-tx-3">
-                {is3D
-                  ? "Kluster 3D Bola (Globe Network): Memori tersusun melingkar volumetrik di ruang 3D."
-                  : "Entri & entitas graph berdasarkan tautan, dengan entitas paling sibuk di tengah. Klik node untuk detail."}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <main className="min-w-0 flex-1 px-5 pb-28 pt-7 sm:px-8 lg:flex lg:h-screen lg:flex-col lg:overflow-hidden lg:px-12 lg:pb-8 lg:pt-10">
+          <PageHeader title={is3D ? "Graph memori · 3D" : "Graph memori"}>
+            {is3D
+              ? "Memori tersusun melingkar volumetrik di ruang 3D."
+              : "Entri & entitas terhubung lewat tautan; entitas paling sibuk di tengah. Klik node untuk detail."}
+          </PageHeader>
+
+            <div className="mb-4 flex flex-wrap items-center gap-2">
               {data && (
-                <Pill tone={tone}>
+                <span className="num mr-auto flex items-center gap-2 text-[12px] text-tx-2">
                   <StatusDot tone={tone} live />
                   {data.stats.entries} entri · {data.stats.entities} entitas · {data.stats.edges} tautan
-                </Pill>
+                </span>
               )}
 
               {/* Toggle 2D / 3D */}
@@ -722,13 +720,13 @@ export default function GraphPage() {
                 onClick={() => setIs3D((v) => !v)}
                 title="Ganti tampilan antara 2D Flat dan 3D Sphere Network"
                 className={cn(
-                  "raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-all",
+                  "flex items-center gap-1.5 rounded-md border border-line bg-surf-1 px-2.5 py-1.5 text-[12px] transition-all",
                   is3D
-                    ? "bg-violet-500/20 text-violet-300 border border-violet-500/40 shadow-xs shadow-violet-500/20 font-semibold"
+                    ? "!border-tx-1 font-medium text-tx-1"
                     : "text-tx-2 hover:text-tx-1"
                 )}
               >
-                {is3D ? <Box className="size-3 text-violet-400" /> : <Layers className="size-3" />}
+                {is3D ? <Box className="size-3" /> : <Layers className="size-3" />}
                 <span>{is3D ? "Mode 3D Bola" : "Mode 2D Flat"}</span>
               </button>
 
@@ -743,8 +741,8 @@ export default function GraphPage() {
                   <button
                     onClick={() => setAutoRotate((v) => !v)}
                     className={cn(
-                      "raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-all",
-                      autoRotate ? "text-sky-400 border-sky-500/30 bg-sky-500/10" : "text-tx-3 hover:text-tx-2"
+                      "flex items-center gap-1.5 rounded-md border border-line bg-surf-1 px-2.5 py-1.5 text-[12px] transition-all",
+                      autoRotate ? "!border-tx-1 text-tx-1" : "text-tx-3 hover:text-tx-2"
                     )}
                     title="Putar graph 3D secara otomatis"
                   >
@@ -757,33 +755,31 @@ export default function GraphPage() {
               <button
                 onClick={resetLayout}
                 title="Buang semua posisi tersimpan dan susun ulang dari nol"
-                className="raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium text-tx-2 transition-colors hover:text-tx-1"
+                className="flex items-center gap-1.5 rounded-md border border-line bg-surf-1 px-2.5 py-1.5 text-[12px] text-tx-2 transition-colors hover:text-tx-1"
               >
                 <Shuffle className="size-3" /> tata ulang
               </button>
               <button
                 onClick={() => centerOnHub()}
                 title="Bawa kamera balik ke entitas paling sibuk"
-                className="raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium text-tx-2 transition-colors hover:text-tx-1"
+                className="flex items-center gap-1.5 rounded-md border border-line bg-surf-1 px-2.5 py-1.5 text-[12px] text-tx-2 transition-colors hover:text-tx-1"
               >
                 <Crosshair className="size-3" /> pusatkan
               </button>
               <button
                 onClick={() => setShowArchive((s) => !s)}
-                className="raised rounded-full px-3 py-1 text-[11px] font-medium text-tx-2 transition-colors hover:text-tx-1"
+                className="rounded-md border border-line bg-surf-1 px-2.5 py-1.5 text-[12px] text-tx-2 transition-colors hover:text-tx-1"
               >
                 {showArchive ? "sembunyikan arsip" : "tampilkan arsip"}
               </button>
               <button
                 onClick={() => refresh()}
-                className="raised flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium text-tx-2 transition-colors hover:text-tx-1"
+                className="flex items-center gap-1.5 rounded-md border border-line bg-surf-1 px-2.5 py-1.5 text-[12px] text-tx-2 transition-colors hover:text-tx-1"
               >
                 <RefreshCw className="size-3" /> muat ulang
               </button>
             </div>
-          </header>
-
-          <div className="grid gap-4 lg:h-[calc(100vh-11rem)] lg:grid-cols-[1fr_340px]">
+          <div className="grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_340px]">
             <Panel className="well relative h-[62vh] min-h-[340px] overflow-hidden border border-line p-0 lg:h-auto lg:min-h-0">
               <div ref={wrapRef} aria-hidden className="pointer-events-none absolute inset-0" />
 
@@ -1060,7 +1056,7 @@ export default function GraphPage() {
                         type="checkbox"
                         checked={showLabels[row.key] ?? false}
                         onChange={() => toggleLabel(row.key)}
-                        className="rounded border-line bg-surface text-sky-500 focus:ring-0"
+                        className="rounded border-line bg-surface accent-tx-1 focus:ring-0"
                       />
                     </label>
                   ))}

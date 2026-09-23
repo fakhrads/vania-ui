@@ -21,7 +21,7 @@ function ChartTip({ active, payload, label }: TipProps) {
   if (!active || !payload?.length) return null;
   const val = (k: string) => payload.find((p) => p.dataKey === k)?.value ?? 0;
   return (
-    <div className="overlay rounded-xl px-3 py-2 text-[11px]">
+    <div className="overlay rounded-md px-3 py-2 text-[11px]">
       <div className="num mb-1.5 text-tx-1">{label}</div>
       <div className="flex items-center gap-1.5 text-tx-2">
         <span className="size-2 rounded-full bg-read" /> baca
@@ -48,16 +48,16 @@ export function Lines({ data }: { data: LinePoint[] }) {
   const tickGap = Math.max(0, Math.ceil(data.length / 6) - 1);
 
   return (
-    <div className="well rounded-xl px-1 py-3">
+    <div className="-ml-2">
       <ResponsiveContainer width="100%" height={196}>
         <LineChart data={data} margin={{ top: 6, right: 12, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="var(--line-soft)" vertical={false} />
+          <CartesianGrid stroke="var(--line-soft)" strokeDasharray="2 4" vertical={false} />
           <XAxis
             dataKey="label"
             interval={tickGap}
             tickLine={false}
             axisLine={{ stroke: "var(--line)" }}
-            tick={{ fill: "var(--tx3)", fontSize: 10 }}
+            tick={{ fill: "var(--tx3)", fontSize: 10, fontFamily: "var(--font-mono)" }}
             dy={4}
           />
           <YAxis
@@ -65,18 +65,18 @@ export function Lines({ data }: { data: LinePoint[] }) {
             width={30}
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "var(--tx3)", fontSize: 10 }}
+            tick={{ fill: "var(--tx3)", fontSize: 10, fontFamily: "var(--font-mono)" }}
           />
           <Tooltip content={<ChartTip />} cursor={{ stroke: "var(--line)" }} />
           <Line
             type="monotone" dataKey="a" name="baca"
-            stroke="var(--read)" strokeWidth={2} dot={false}
+            stroke="var(--read)" strokeWidth={1.75} dot={false}
             activeDot={{ r: 3.5, strokeWidth: 0 }}
             isAnimationActive={false}
           />
           <Line
             type="monotone" dataKey="b" name="tulis"
-            stroke="var(--write)" strokeWidth={2} dot={false}
+            stroke="var(--write)" strokeWidth={1.75} dot={false}
             activeDot={{ r: 3.5, strokeWidth: 0 }}
             isAnimationActive={false}
           />

@@ -3,11 +3,16 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
-import { useLive } from "@/components/monitor";
-import {
-  Bot, CheckCircle2, AlertCircle, PlayCircle,
-  Terminal, RefreshCw, Layers
-} from "lucide-react";
+import { useLive, Stat, StatusDot, type Tone } from "@/components/monitor";
+import { RefreshCw } from "lucide-react";
+import { PageHeader, LiveStamp } from "@/components/page-header";
+
+function stateTone(state: string): Tone {
+  if (state === "running" || state === "in_progress") return "accent";
+  if (state === "completed") return "ok";
+  if (state === "failed") return "bad";
+  return "idle";
+}
 import { cn } from "@/lib/utils";
 import { authFetch } from "@/lib/auth-fetch";
 
@@ -35,7 +40,7 @@ interface AgentsData {
 }
 
 export default function AgentsPage() {
-  const { data, refresh } = useLive<AgentsData>("/api/agents", 3000);
+  const { data, refresh, at, err } = useLive<AgentsData>("/api/agents", 3000);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [agentLogs, setAgentLogs] = useState<any[] | null>(null);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -64,66 +69,41 @@ export default function AgentsPage() {
       <div className="flex min-h-screen flex-col lg:flex-row">
         <Sidebar />
 
-        <main className="flex-1 overflow-y-auto px-6 pb-28 pt-8 lg:px-10 lg:pb-8">
+        <main className="min-w-0 flex-1 px-5 pb-28 pt-7 sm:px-8 lg:px-12 lg:pb-12 lg:pt-10">
+          <PageHeader
+            title="Subagents"
+            actions={
+              <>
+                <button
+                  onClick={() => refresh()}
+                  className="flex items-center gap-2 rounded-md border border-line bg-surf-1 px-3 py-1.5 text-[12.5px] text-tx-1 transition-colors hover:border-tx-3"
+                >
+                  <RefreshCw className="size-3.5 text-tx-3" /> Segarkan
+                </button>
+                <LiveStamp at={at} err={err}>
+                  <StatusDot tone={err ? "bad" : "ok"} live={!err} />
+                </LiveStamp>
+              </>
+            }
+          >
+            Siklus delegasi agent anak dan transkrip lognya.
+          </PageHeader>
+
           <div className="space-y-6">
-            {/* Header Soft-Depth */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <h1 className="text-xl font-semibold tracking-tight text-tx-1">Subagent Live Tracking</h1>
-                  <span className="live-dot" />
-                </div>
-                <p className="mt-1 text-[13px] text-tx-3">
-                  Pantau siklus delegasi agent anak, konsumsi resources, dan live terminal transcript.
-                </p>
-              </div>
-              <button
-                onClick={() => refresh()}
-                className="raised flex items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-medium text-tx-1 transition-transform active:scale-95"
-              >
-                <RefreshCw className="size-3.5 text-tx-3" />
-                Segarkan
-              </button>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Stat label="Total delegasi" value={summary.total} />
+              <Stat label="Berjalan" tone="accent" value={summary.running} />
+              <Stat label="Selesai" tone="ok" value={summary.completed} />
+              <Stat label="Gagal" tone={summary.failed > 0 ? "bad" : "idle"} value={summary.failed} />
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
-              <div className="panel flex flex-col justify-between p-4">
-                <span className="text-[12px] font-medium text-tx-3">Total Delegations</span>
-                <div className="mt-2 flex items-baseline justify-between">
-                  <span className="text-2xl font-semibold tracking-tight text-tx-1">{summary.total}</span>
-                  <Layers className="size-4 text-tx-3" />
-                </div>
-              </div>
-              <div className="panel flex flex-col justify-between p-4">
-                <span className="text-[12px] font-medium text-tx-3">Running Active</span>
-                <div className="mt-2 flex items-baseline justify-between">
-                  <span className="text-2xl font-semibold tracking-tight text-accent-solid">{summary.running}</span>
-                  <PlayCircle className="size-4 text-accent-solid" />
-                </div>
-              </div>
-              <div className="panel flex flex-col justify-between p-4">
-                <span className="text-[12px] font-medium text-tx-3">Selesai</span>
-                <div className="mt-2 flex items-baseline justify-between">
-                  <span className="text-2xl font-semibold tracking-tight text-emerald-400">{summary.completed}</span>
-                  <CheckCircle2 className="size-4 text-emerald-400" />
-                </div>
-              </div>
-              <div className="panel flex flex-col justify-between p-4">
-                <span className="text-[12px] font-medium text-tx-3">Error / Failed</span>
-                <div className="mt-2 flex items-baseline justify-between">
-                  <span className="text-2xl font-semibold tracking-tight text-rose-400">{summary.failed}</span>
-                  <AlertCircle className="size-4 text-rose-400" />
-                </div>
-              </div>
-            </div>
-
-            {/* Subagent List & Transcript Viewer Layout */}
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-              {/* Subagent List */}
-              <div className="panel lg:col-span-5 rounded-2xl p-4 space-y-3">
-                <h2 className="text-[13.5px] font-semibold text-tx-1 px-1">Daftar Subagent</h2>
-                <div className="well space-y-2 rounded-xl p-2 max-h-[560px] overflow-y-auto">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+              <section className="panel overflow-hidden rounded-xl lg:col-span-5">
+                <h2 className="flex items-center justify-between border-b border-line px-4 py-3 text-[13.5px] font-semibold text-tx-1">
+                  Daftar subagent
+                  <span className="num text-[12px] font-normal text-tx-3">{delegations.length}</span>
+                </h2>
+                <div className="max-h-[560px] divide-y divide-line-soft overflow-y-auto">
                   {delegations.length === 0 ? (
                     <div className="flex h-32 items-center justify-center text-[12px] text-tx-3">
                       Belum ada riwayat subagent.
@@ -137,89 +117,73 @@ export default function AgentsPage() {
 
                       const isSelected = selectedAgentId === d.delegation_id;
                       const isRunning = d.state === "running" || d.state === "in_progress";
+                      const tone = stateTone(d.state);
 
                       return (
-                        <div
+                        <button
                           key={d.delegation_id}
                           onClick={() => handleSelectAgent(d.delegation_id)}
                           className={cn(
-                            "raised cursor-pointer rounded-xl p-3 text-left transition-all hover:border-accent-border/50",
-                            isSelected && "border-accent-solid ring-1 ring-accent-solid/30"
+                            "relative block w-full px-4 py-3 text-left transition-colors",
+                            isSelected ? "bg-sunken" : "hover:bg-sunken/60"
                           )}
                         >
+                          {isSelected && <span aria-hidden className="absolute inset-y-0 left-0 w-[2px] bg-tx-1" />}
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <Bot className={cn("size-4", isRunning ? "text-accent-solid animate-pulse" : "text-tx-3")} />
-                              <span className="font-mono text-[11px] text-tx-2 truncate max-w-[140px]">
-                                {d.delegation_id}
-                              </span>
-                            </div>
-                            <span
-                              className={cn(
-                                "rounded-md px-2 py-0.5 text-[10px] font-medium",
-                                isRunning && "bg-accent-solid/10 text-accent-solid",
-                                d.state === "completed" && "bg-emerald-500/10 text-emerald-400",
-                                d.state === "failed" && "bg-rose-500/10 text-rose-400"
-                              )}
-                            >
+                            <span className="num max-w-[180px] truncate text-[11px] text-tx-3">{d.delegation_id}</span>
+                            <span className={cn("flex items-center gap-1.5 text-[11px] font-medium",
+                              tone === "ok" ? "text-ok" : tone === "bad" ? "text-bad" : tone === "accent" ? "text-accent-solid" : "text-tx-2")}>
+                              <StatusDot tone={tone} size={7} live={isRunning} />
                               {d.state}
                             </span>
                           </div>
-
-                          <p className="mt-2 line-clamp-2 text-[12px] font-medium text-tx-1">
-                            {taskData.goal || taskData.prompt || "Subagent Worker Task"}
+                          <p className="mt-1.5 line-clamp-2 text-[13px] text-tx-1">
+                            {taskData.goal || taskData.prompt || "Subagent worker task"}
                           </p>
-
-                          <div className="mt-2.5 flex items-center justify-between text-[10.5px] text-tx-3">
-                            <span>PID: {d.owner_pid || "—"}</span>
+                          <div className="num mt-1.5 flex items-center justify-between text-[10.5px] text-tx-3">
+                            <span>pid {d.owner_pid || "—"}</span>
                             <span>{new Date(d.dispatched_at * 1000).toLocaleTimeString("id-ID")}</span>
                           </div>
-                        </div>
+                        </button>
                       );
                     })
                   )}
                 </div>
-              </div>
+              </section>
 
-              {/* Transcript Viewer Drawer / Console */}
-              <div className="panel lg:col-span-7 rounded-2xl p-4 flex flex-col min-h-[560px]">
-                <div className="flex items-center justify-between border-b border-border/40 pb-3 px-1">
-                  <div className="flex items-center gap-2">
-                    <Terminal className="size-4 text-accent-solid" />
-                    <span className="text-[13.5px] font-semibold text-tx-1">Live Transcript & Logs</span>
-                  </div>
+              <section className="panel flex min-h-[560px] flex-col overflow-hidden rounded-xl lg:col-span-7">
+                <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
+                  <span className="text-[13.5px] font-semibold text-tx-1">Transkrip &amp; log</span>
                   {selectedAgentId && (
-                    <span className="font-mono text-[11px] text-tx-3 well px-2 py-0.5 rounded-md">
-                      {selectedAgentId}
-                    </span>
+                    <span className="num truncate text-[11px] text-tx-3">{selectedAgentId}</span>
                   )}
                 </div>
 
-                <div className="well flex-1 mt-3 rounded-xl p-3.5 font-mono text-[11.5px] overflow-y-auto max-h-[480px]">
+                <div className="num max-h-[500px] flex-1 overflow-y-auto bg-sunken/50 p-4 text-[12px]">
                   {!selectedAgentId ? (
-                    <div className="flex h-full items-center justify-center text-tx-3">
-                      Pilih salah satu subagent di sebelah kiri untuk melihat live log transcript.
+                    <div className="flex h-full items-center justify-center text-center text-tx-3">
+                      Pilih subagent di kiri untuk membuka transkripnya.
                     </div>
                   ) : loadingLogs ? (
                     <div className="flex h-full items-center justify-center text-tx-3">
-                      <RefreshCw className="size-4 animate-spin mr-2" />
-                      Memuat transcript logs...
+                      <RefreshCw className="mr-2 size-4 animate-spin" />
+                      Memuat transkrip…
                     </div>
                   ) : !agentLogs || agentLogs.length === 0 ? (
                     <div className="flex h-full items-center justify-center text-tx-3">
-                      Belum ada log file transcript untuk subagent ini.
+                      Belum ada log transkrip untuk subagent ini.
                     </div>
                   ) : (
                     <div className="space-y-2 text-tx-2">
                       {agentLogs.map((log, idx) => (
-                        <div key={idx} className="leading-relaxed border-b border-border/20 pb-1.5">
+                        <div key={idx} className="border-b border-line-soft pb-2 leading-relaxed">
                           {log.role && (
                             <span
                               className={cn(
-                                "mr-2 font-semibold text-[10.5px] uppercase",
-                                log.role === "user" && "text-sky-400",
-                                log.role === "assistant" && "text-emerald-400",
-                                log.role === "tool" && "text-amber-400"
+                                "mr-2 text-[10.5px] font-semibold uppercase",
+                                log.role === "user" && "text-read",
+                                log.role === "assistant" && "text-ok",
+                                log.role === "tool" && "text-warn"
                               )}
                             >
                               [{log.role}]
@@ -231,7 +195,7 @@ export default function AgentsPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </section>
             </div>
           </div>
         </main>

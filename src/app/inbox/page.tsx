@@ -5,8 +5,10 @@ import { useAuth } from "@/lib/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
 import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
-import { Panel, Pill } from "@/components/monitor";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Panel } from "@/components/monitor";
+import { StatusDot } from "@/components/monitor";
+import { PageHeader } from "@/components/page-header";
+import { SearchField, Pager } from "@/components/controls";
 
 interface InboxItem {
   id: number;
@@ -49,73 +51,51 @@ export default function InboxPage() {
     <Guard>
     <div className="flex min-h-screen flex-col lg:flex-row">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto px-6 pb-28 pt-8 lg:px-10 lg:pb-8">
-        <header className="mb-6">
-          <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-tx-1">Inbox</h1>
-          <p className="mt-1 text-sm text-tx-3">
-            <span className="num">{total.toLocaleString("id-ID")}</span> pesan masuk di{" "}
-            <span className="num text-tx-2">vania_inbox_legacy</span>
-          </p>
-        </header>
+      <main className="min-w-0 flex-1 px-5 pb-28 pt-7 sm:px-8 lg:px-12 lg:pb-12 lg:pt-10">
+        <PageHeader title="Inbox">
+          <span className="num text-tx-2">{total.toLocaleString("id-ID")}</span> pesan masuk di{" "}
+          <span className="num text-tx-2">vania_inbox_legacy</span>
+        </PageHeader>
 
-        <div className="well mb-4 flex max-w-md items-center gap-3 rounded-xl px-4 py-2.5">
-          <Search className="size-4 shrink-0 text-tx-3" />
-          <input
+        <div className="mb-5 flex max-w-md">
+          <SearchField
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Cari pesan…"
-            className="w-full bg-transparent text-sm text-tx-1 outline-none placeholder:text-tx-3"
           />
         </div>
 
-        <div className="space-y-2">
+        <Panel className="divide-y divide-line-soft overflow-hidden">
           {loading && !items.length ? (
-            Array.from({ length: 5 }).map((_, i) => (
-              <Panel key={i} className="h-24 animate-pulse opacity-40" />
-            ))
+            Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 animate-pulse bg-sunken/50" />)
           ) : items.length ? (
             items.map((item) => (
-              <Panel key={item.id} hover className="p-4">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <Pill tone={item.processed ? "ok" : "warn"}>
+              <article key={item.id} className="grid gap-x-6 gap-y-2 px-5 py-4 transition-colors hover:bg-sunken/60 md:grid-cols-[150px_1fr]">
+                <div className="flex flex-wrap items-center gap-2 md:flex-col md:items-start">
+                  <span className="num text-[11px] text-tx-3">
+                    {new Date(item.created_at).toLocaleString("id-ID", {
+                      day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+                    })}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-[12px] text-tx-2">
+                    <StatusDot tone={item.processed ? "ok" : "warn"} size={7} />
                     {item.processed ? "terproses" : "menunggu"}
-                  </Pill>
+                  </span>
                   {item.max_sim !== null && (
-                    <span className="num rounded-full bg-idle-tint px-2.5 py-0.5 text-[11px] text-tx-2">
-                      max_sim {item.max_sim?.toFixed(3)}
+                    <span className="num text-[11px] text-tx-3">
+                      sim <span className="text-tx-1">{item.max_sim?.toFixed(3)}</span>
                     </span>
                   )}
-                  <span className="num ml-auto text-[11px] text-tx-3">
-                    {new Date(item.created_at).toLocaleString("id-ID")}
-                  </span>
                 </div>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-tx-1">{item.turn_text}</p>
-              </Panel>
+                <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-tx-1">{item.turn_text}</p>
+              </article>
             ))
           ) : (
-            <Panel className="p-10 text-center text-sm text-tx-3">Tidak ada pesan yang cocok.</Panel>
+            <div className="p-10 text-center text-sm text-tx-3">Tidak ada pesan yang cocok.</div>
           )}
-        </div>
+        </Panel>
 
-        {totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-center gap-3.5">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="raised rounded-xl p-2.5 text-tx-1 disabled:opacity-40 disabled:shadow-none"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-            <span className="num text-sm text-tx-2">{page} / {totalPages}</span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="raised rounded-xl p-2.5 text-tx-1 disabled:opacity-40 disabled:shadow-none"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
-        )}
+        <Pager page={page} pages={totalPages} onPage={setPage} total={total} />
       </main>
     </div>
     </Guard>

@@ -4,15 +4,20 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ── Token soft-depth ────────────────────────────────────────────────────
-   Dipetakan ke utilitas Tailwind lewat @theme inline, jadi kelas seperti
-   bg-surf-1 / text-tx-2 / border-line / shadow-e2 tersedia langsung.       */
+/* ── Token "Ledger" ──────────────────────────────────────────────────────
+   Kertas & tinta. Permukaan datar, dipisah garis rambut 1px — bukan
+   bayangan. Warna sengaja dihemat untuk DATA: status, tier korpus, arah
+   baca/tulis. Chrome (navigasi, judul, bingkai) cukup tinta di atas kertas,
+   jadi setiap warna yang muncul di layar pasti berarti sesuatu.
+   Dipetakan ke utilitas Tailwind lewat @theme inline (bg-surf-1, text-tx-2,
+   border-line, font-display, …).                                          */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-display);
+  --font-display: var(--font-display);
 
   --color-bg: var(--bg);
   --color-sunken: var(--sunken);
@@ -25,6 +30,7 @@
   --color-tx-2: var(--tx2);
   --color-tx-3: var(--tx3);
 
+  --color-brass: var(--brass);
   --color-accent-solid: var(--accent-solid);
   --color-accent-tint: var(--accent-tint);
   --color-ok: var(--ok);
@@ -87,150 +93,121 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Terang — elevasi dibawa bayangan; permukaan tetap putih. */
+/* Terang — kertas hangat, tinta biru-hitam. Elevasi hampir tak dipakai:
+   yang memisahkan area adalah garis, jadi tabel tetap padat. */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.375rem;
 
-  --bg: oklch(0.951 0.004 264);
-  --sunken: oklch(0.922 0.005 264);
-  --surf1: oklch(1 0 0);
-  --surf2: oklch(1 0 0);
+  --bg: oklch(0.970 0.007 85);
+  --sunken: oklch(0.945 0.009 85);
+  --surf1: oklch(0.988 0.005 85);
+  --surf2: oklch(0.996 0.003 85);
   --surf3: oklch(1 0 0);
-  --line: oklch(0.905 0.006 264);
-  --line-soft: oklch(0.935 0.005 264);
-  --tx1: oklch(0.260 0.014 264);
-  --tx2: oklch(0.460 0.012 264);
-  --tx3: oklch(0.600 0.010 264);
+  --line: oklch(0.868 0.013 80);
+  --line-soft: oklch(0.918 0.010 80);
+  --tx1: oklch(0.205 0.018 262);
+  --tx2: oklch(0.420 0.016 262);
+  --tx3: oklch(0.535 0.013 262);
 
-  --accent-solid: oklch(0.550 0.160 274);
-  --accent-tint: oklch(0.945 0.040 274);
-  --ok: oklch(0.550 0.140 158);
-  --ok-tint: oklch(0.945 0.045 158);
-  --warn: oklch(0.600 0.130 70);
-  --warn-tint: oklch(0.950 0.050 78);
-  --bad: oklch(0.550 0.190 22);
-  --bad-tint: oklch(0.950 0.045 20);
-  --idle: oklch(0.600 0.010 264);
-  --idle-tint: oklch(0.945 0.004 264);
+  /* Kuningan — HANYA untuk tanda merek. Bukan warna status. */
+  --brass: oklch(0.585 0.105 72);
+  --accent-solid: oklch(0.480 0.190 264);
+  --accent-tint: oklch(0.935 0.035 264);
+  --ok: oklch(0.505 0.130 155);
+  --ok-tint: oklch(0.935 0.045 155);
+  --warn: oklch(0.585 0.150 55);
+  --warn-tint: oklch(0.940 0.050 70);
+  --bad: oklch(0.520 0.200 25);
+  --bad-tint: oklch(0.935 0.045 22);
+  --idle: oklch(0.560 0.012 262);
+  --idle-tint: oklch(0.930 0.006 262);
 
-  --seed: oklch(0.550 0.140 240);
-  --active: oklch(0.550 0.140 158);
-  --evicted: oklch(0.600 0.130 70);
-  --archive: oklch(0.600 0.010 264);
-  --entity: oklch(0.550 0.160 300);
-  --read: oklch(0.550 0.150 250);
-  --write: oklch(0.520 0.170 300);
+  --seed: oklch(0.520 0.150 245);
+  --active: oklch(0.505 0.130 155);
+  --evicted: oklch(0.585 0.150 55);
+  --archive: oklch(0.560 0.012 262);
+  --entity: oklch(0.500 0.170 305);
+  --read: oklch(0.520 0.150 245);
+  --write: oklch(0.560 0.190 30);
 
-  --sh1: 0 1px 2px rgb(17 20 34 / 0.06), 0 4px 12px -6px rgb(17 20 34 / 0.10);
-  --sh2: 0 2px 4px rgb(17 20 34 / 0.07), 0 12px 24px -10px rgb(17 20 34 / 0.14);
-  --sh3: 0 6px 10px rgb(17 20 34 / 0.08), 0 24px 48px -16px rgb(17 20 34 / 0.20);
-  --inset: inset 0 1px 0 rgb(255 255 255 / 0.9);
-  --sunk: inset 0 2px 4px rgb(17 20 34 / 0.09);
+  --sh1: 0 1px 0 rgb(40 34 20 / 0.04);
+  --sh2: 0 1px 2px rgb(40 34 20 / 0.06), 0 8px 20px -12px rgb(40 34 20 / 0.18);
+  --sh3: 0 2px 4px rgb(40 34 20 / 0.06), 0 24px 48px -20px rgb(40 34 20 / 0.28);
+  --inset: inset 0 0 0 0 transparent;
+  --sunk: inset 0 0 0 1px var(--line-soft);
 
-  --background: oklch(0.951 0.004 264);
-  --foreground: oklch(0.260 0.014 264);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.260 0.014 264);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.260 0.014 264);
-  --primary: oklch(0.550 0.160 274);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.922 0.005 264);
-  --secondary-foreground: oklch(0.260 0.014 264);
-  --muted: oklch(0.922 0.005 264);
-  --muted-foreground: oklch(0.600 0.010 264);
-  --accent: oklch(0.945 0.040 274);
-  --accent-foreground: oklch(0.550 0.160 274);
-  --destructive: oklch(0.550 0.190 22);
-  --border: oklch(0.905 0.006 264);
-  --input: oklch(0.905 0.006 264);
-  --ring: oklch(0.550 0.160 274);
-  --chart-1: oklch(0.550 0.150 250);
-  --chart-2: oklch(0.520 0.170 300);
-  --chart-3: oklch(0.550 0.140 158);
-  --chart-4: oklch(0.600 0.130 70);
-  --chart-5: oklch(0.550 0.190 22);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.260 0.014 264);
-  --sidebar-primary: oklch(0.550 0.160 274);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.945 0.040 274);
-  --sidebar-accent-foreground: oklch(0.550 0.160 274);
-  --sidebar-border: oklch(0.905 0.006 264);
-  --sidebar-ring: oklch(0.550 0.160 274);
+  --background: var(--bg);
+  --foreground: var(--tx1);
+  --card: var(--surf1);
+  --card-foreground: var(--tx1);
+  --popover: var(--surf3);
+  --popover-foreground: var(--tx1);
+  --primary: var(--tx1);
+  --primary-foreground: var(--bg);
+  --secondary: var(--sunken);
+  --secondary-foreground: var(--tx1);
+  --muted: var(--sunken);
+  --muted-foreground: var(--tx3);
+  --accent: var(--accent-tint);
+  --accent-foreground: var(--accent-solid);
+  --destructive: var(--bad);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--accent-solid);
+  --chart-1: var(--read);
+  --chart-2: var(--write);
+  --chart-3: var(--ok);
+  --chart-4: var(--warn);
+  --chart-5: var(--entity);
+  --sidebar: var(--bg);
+  --sidebar-foreground: var(--tx1);
+  --sidebar-primary: var(--tx1);
+  --sidebar-primary-foreground: var(--bg);
+  --sidebar-accent: var(--sunken);
+  --sidebar-accent-foreground: var(--tx1);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--accent-solid);
 }
 
-/* Gelap — bayangan nyaris tak terlihat, jadi elevasi dibawa terang
-   permukaan plus garis sorot 1px di tepi atas (--inset). Bukan sekadar
-   tukar warna: mekanismenya memang beda dari tema terang. */
+/* Gelap — tinta malam, teks kertas. Permukaan naik terang sedikit demi
+   sedikit (surf1→3); garis yang tetap memikul pemisahan. */
 .dark {
-  --bg: oklch(0.168 0.008 264);
-  --sunken: oklch(0.142 0.008 264);
-  --surf1: oklch(0.222 0.009 264);
-  --surf2: oklch(0.262 0.010 264);
-  --surf3: oklch(0.305 0.011 264);
-  --line: oklch(0.318 0.012 264);
-  --line-soft: oklch(0.262 0.010 264);
-  --tx1: oklch(0.962 0.004 264);
-  --tx2: oklch(0.780 0.008 264);
-  --tx3: oklch(0.620 0.010 264);
+  --bg: oklch(0.158 0.012 258);
+  --sunken: oklch(0.134 0.011 258);
+  --surf1: oklch(0.186 0.013 258);
+  --surf2: oklch(0.212 0.014 258);
+  --surf3: oklch(0.246 0.015 258);
+  --line: oklch(0.300 0.015 258);
+  --line-soft: oklch(0.240 0.013 258);
+  --tx1: oklch(0.950 0.010 85);
+  --tx2: oklch(0.790 0.012 85);
+  --tx3: oklch(0.630 0.013 262);
 
-  --accent-solid: oklch(0.720 0.130 274);
-  --accent-tint: oklch(0.300 0.060 274);
-  --ok: oklch(0.780 0.140 158);
-  --ok-tint: oklch(0.290 0.055 158);
-  --warn: oklch(0.830 0.130 78);
-  --warn-tint: oklch(0.300 0.050 78);
-  --bad: oklch(0.720 0.160 18);
-  --bad-tint: oklch(0.300 0.065 18);
-  --idle: oklch(0.620 0.010 264);
-  --idle-tint: oklch(0.270 0.008 264);
+  --brass: oklch(0.790 0.105 80);
+  --accent-solid: oklch(0.760 0.120 258);
+  --accent-tint: oklch(0.285 0.055 262);
+  --ok: oklch(0.780 0.140 155);
+  --ok-tint: oklch(0.275 0.050 155);
+  --warn: oklch(0.800 0.140 65);
+  --warn-tint: oklch(0.290 0.055 60);
+  --bad: oklch(0.710 0.170 22);
+  --bad-tint: oklch(0.290 0.070 22);
+  --idle: oklch(0.630 0.013 262);
+  --idle-tint: oklch(0.255 0.010 262);
 
-  --seed: oklch(0.750 0.130 240);
-  --active: oklch(0.780 0.140 158);
-  --evicted: oklch(0.830 0.130 78);
-  --archive: oklch(0.620 0.010 264);
-  --entity: oklch(0.740 0.130 300);
-  --read: oklch(0.720 0.130 250);
-  --write: oklch(0.700 0.140 300);
+  --seed: oklch(0.760 0.120 240);
+  --active: oklch(0.780 0.140 155);
+  --evicted: oklch(0.800 0.140 65);
+  --archive: oklch(0.630 0.013 262);
+  --entity: oklch(0.750 0.130 305);
+  --read: oklch(0.760 0.120 240);
+  --write: oklch(0.730 0.150 30);
 
-  --sh1: 0 1px 2px rgb(0 0 0 / 0.45), 0 6px 18px -10px rgb(0 0 0 / 0.8);
-  --sh2: 0 2px 4px rgb(0 0 0 / 0.5), 0 14px 32px -14px rgb(0 0 0 / 0.85);
-  --sh3: 0 8px 14px rgb(0 0 0 / 0.5), 0 28px 56px -20px rgb(0 0 0 / 0.9);
-  --inset: inset 0 1px 0 rgb(255 255 255 / 0.055);
-  --sunk: inset 0 2px 4px rgb(0 0 0 / 0.45);
-
-  --background: oklch(0.168 0.008 264);
-  --foreground: oklch(0.962 0.004 264);
-  --card: oklch(0.222 0.009 264);
-  --card-foreground: oklch(0.962 0.004 264);
-  --popover: oklch(0.262 0.010 264);
-  --popover-foreground: oklch(0.962 0.004 264);
-  --primary: oklch(0.720 0.130 274);
-  --primary-foreground: oklch(0.168 0.008 264);
-  --secondary: oklch(0.262 0.010 264);
-  --secondary-foreground: oklch(0.962 0.004 264);
-  --muted: oklch(0.262 0.010 264);
-  --muted-foreground: oklch(0.620 0.010 264);
-  --accent: oklch(0.300 0.060 274);
-  --accent-foreground: oklch(0.720 0.130 274);
-  --destructive: oklch(0.720 0.160 18);
-  --border: oklch(0.318 0.012 264);
-  --input: oklch(0.318 0.012 264);
-  --ring: oklch(0.720 0.130 274);
-  --chart-1: oklch(0.720 0.130 250);
-  --chart-2: oklch(0.700 0.140 300);
-  --chart-3: oklch(0.780 0.140 158);
-  --chart-4: oklch(0.830 0.130 78);
-  --chart-5: oklch(0.720 0.160 18);
-  --sidebar: oklch(0.222 0.009 264);
-  --sidebar-foreground: oklch(0.962 0.004 264);
-  --sidebar-primary: oklch(0.720 0.130 274);
-  --sidebar-primary-foreground: oklch(0.168 0.008 264);
-  --sidebar-accent: oklch(0.300 0.060 274);
-  --sidebar-accent-foreground: oklch(0.720 0.130 274);
-  --sidebar-border: oklch(0.318 0.012 264);
-  --sidebar-ring: oklch(0.720 0.130 274);
+  --sh1: 0 1px 0 rgb(0 0 0 / 0.25);
+  --sh2: 0 2px 4px rgb(0 0 0 / 0.4), 0 12px 28px -14px rgb(0 0 0 / 0.8);
+  --sh3: 0 4px 8px rgb(0 0 0 / 0.45), 0 28px 56px -20px rgb(0 0 0 / 0.9);
+  --inset: inset 0 1px 0 rgb(255 255 255 / 0.035);
+  --sunk: inset 0 0 0 1px var(--line-soft);
 }
 
 @layer base {
@@ -246,8 +223,10 @@
 }
 
 /* ── Permukaan ───────────────────────────────────────────────────────────
-   Tiga tingkat elevasi plus satu sumur. Semuanya buram — tidak ada
-   backdrop-filter, tidak ada latar transparan bertumpuk.                   */
+   Nama kelas lama (panel/raised/overlay/well) dipertahankan supaya semua
+   halaman ikut berubah tanpa disentuh satu-satu. Isinya yang berganti:
+   datar, dibatasi garis. Bayangan cuma untuk yang benar-benar melayang
+   di atas halaman (popover, sheet) — di situ elevasi memang informasi.   */
 @layer utilities {
   .panel {
     background: var(--surf1);
@@ -257,12 +236,12 @@
   .raised {
     background: var(--surf2);
     border: 1px solid var(--line);
-    box-shadow: var(--sh1), var(--inset);
+    box-shadow: var(--inset);
   }
   .raised-2 {
     background: var(--surf2);
     border: 1px solid var(--line);
-    box-shadow: var(--sh2), var(--inset);
+    box-shadow: var(--sh1), var(--inset);
   }
   .overlay {
     background: var(--surf3);
@@ -274,27 +253,62 @@
     box-shadow: var(--sunk);
   }
   .panel-hover {
-    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    transition: border-color .15s ease, background-color .15s ease;
   }
   .panel-hover:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--sh2), var(--inset);
+    border-color: color-mix(in oklch, var(--tx1) 28%, var(--line));
   }
   .num {
     font-family: var(--font-mono), ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
+  }
+  /* Judul halaman & angka besar. Instrument Serif cuma punya satu bobot,
+     jadi jangan pernah dipasangi font-semibold — browser akan memalsukan
+     tebal dan hasilnya belepotan. */
+  .display {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    line-height: 1.02;
+  }
+  /* Label kecil berhuruf kapital — penanda bagian, kepala kolom. */
+  .kicker {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--tx3);
+  }
+  /* Garis putus-putus penyambung label ↔ nilai, gaya daftar isi buku. */
+  .leader {
+    flex: 1;
+    min-width: 12px;
+    border-bottom: 1px dotted var(--line);
+    transform: translateY(-4px);
   }
 }
 
+/* Tanda status: bentuk berbeda per tone, bukan cuma warna — tetap terbaca
+   di layar grayscale dan buat mata yang susah membedakan merah-hijau.
+   ok ● bulat · warn ▲ segitiga · bad ◆ belah ketupat · idle ○ cincin. */
+.mark { display: inline-block; flex-shrink: 0; background: currentColor; }
+.mark-ok   { border-radius: 9999px; }
+.mark-warn { clip-path: polygon(50% 4%, 100% 96%, 0 96%); }
+.mark-bad  { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.mark-idle { border-radius: 9999px; background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
+
 @keyframes pulse-ring {
   0%   { box-shadow: 0 0 0 0 var(--ring-color); }
-  70%  { box-shadow: 0 0 0 7px transparent; }
+  70%  { box-shadow: 0 0 0 6px transparent; }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 .live-dot { animation: pulse-ring 2.4s cubic-bezier(.4,0,.6,1) infinite; }
 
+::selection { background: color-mix(in oklch, var(--accent-solid) 28%, transparent); }
+
 @media (prefers-reduced-motion: reduce) {
   .panel-hover, .live-dot { transition: none; animation: none; }
-  .panel-hover:hover { transform: none; }
 }
+

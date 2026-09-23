@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Guard } from "@/components/guard";
-import { useLive } from "@/components/monitor";
-import { Home, AlertTriangle, ArrowRight, Users, Route as RouteIcon } from "lucide-react";
+import { useLive, StatusDot } from "@/components/monitor";
+import { PageHeader } from "@/components/page-header";
+import { Home, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Resident {
@@ -67,37 +68,31 @@ export default function TownPage() {
 
   return (
     <Guard>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen flex-col lg:flex-row">
         <Sidebar />
-        <main className="flex-1 space-y-4 p-4 lg:p-6">
-          <header className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="font-heading text-xl font-semibold text-tx-1">Kota</h1>
-              <p className="text-[13px] text-tx-3">
-                Siapa lagi kerja apa, dan siapa mengoper ke siapa. Jalan putus-putus merah =
-                pesan berangkat, hasilnya belum pulang.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2 text-[12px]">
-              <Angka ikon={<Users size={13} />} label="penduduk" v={stats?.residents ?? 0} />
-              <Angka ikon={<RouteIcon size={13} />} label="jalan" v={stats?.roads ?? 0} />
-              <Angka ikon={<ArrowRight size={13} />} label="handoff" v={stats?.handoffs ?? 0} />
-              <Angka
-                ikon={<AlertTriangle size={13} />}
-                label="menggantung"
-                v={stats?.pending ?? 0}
-                bahaya={(stats?.pending ?? 0) > 0}
-              />
-            </div>
-          </header>
+        {/* pb-28 di HP: bar navigasi bawah menempel dan menutupi konten. */}
+        <main className="min-w-0 flex-1 space-y-6 px-5 pb-28 pt-7 sm:px-8 lg:px-12 lg:pb-12 lg:pt-10">
+          <PageHeader title="Kota">
+            Siapa lagi kerja apa, dan siapa mengoper ke siapa. Jalan putus-putus merah = pesan
+            berangkat, hasilnya belum pulang.
+          </PageHeader>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Angka label="Penduduk" v={stats?.residents ?? 0} />
+            <Angka label="Jalan" v={stats?.roads ?? 0} />
+            <Angka label="Handoff" v={stats?.handoffs ?? 0} />
+            <Angka label="Menggantung" v={stats?.pending ?? 0} bahaya={(stats?.pending ?? 0) > 0} />
+          </div>
 
           {err && (
-            <div className="panel rounded-xl p-3 text-[13px] text-bad">Gagal memuat: {err}</div>
+            <div className="flex items-center gap-2 rounded-md border border-bad/40 bg-bad-tint px-3 py-2 text-[13px] text-bad">
+              <StatusDot tone="bad" size={8} /> Gagal memuat: {err}
+            </div>
           )}
 
-          <div className="grid gap-4 lg:grid-cols-12">
+          <div className="grid gap-6 lg:grid-cols-12">
             {/* ---------- peta ---------- */}
-            <section className="panel lg:col-span-8 rounded-2xl p-3">
+            <section className="panel rounded-xl p-3 lg:col-span-8">
               <div className="w-full overflow-x-auto">
                 <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full min-w-[560px]">
                   {/* jalan digambar dulu supaya rumah menimpanya */}
@@ -124,7 +119,7 @@ export default function TownPage() {
                         <text
                           x={mx} y={my - 6}
                           textAnchor="middle"
-                          className="fill-tx-3 text-[10px]"
+                          className="fill-tx-3 font-mono text-[10px]"
                         >
                           {j.total}
                           {j.pending > 0 ? ` · ${j.pending} nunggu` : ""}
@@ -150,9 +145,9 @@ export default function TownPage() {
                           r={r.id === "vania" ? 30 : 24}
                           className={cn(
                             "transition-all",
-                            aktif ? "fill-accent-tint stroke-accent-solid" : "fill-surf-2 stroke-line"
+                            aktif ? "fill-surf-3 stroke-tx-1" : "fill-surf-2 stroke-line"
                           )}
-                          strokeWidth={aktif ? 2 : 1.2}
+                          strokeWidth={aktif ? 1.75 : 1}
                         />
                         <circle
                           cx={r.id === "vania" ? 21 : 17}
@@ -187,32 +182,27 @@ export default function TownPage() {
             </section>
 
             {/* ---------- penduduk + denyut ---------- */}
-            <section className="lg:col-span-4 space-y-4">
-              <div className="panel rounded-2xl p-4">
-                <h2 className="mb-2 text-[13px] font-semibold text-tx-1">Penduduk</h2>
-                <div className="well max-h-[240px] space-y-1.5 overflow-y-auto rounded-xl p-2">
+            <section className="space-y-6 lg:col-span-4">
+              <div className="panel overflow-hidden rounded-xl">
+                <h2 className="border-b border-line px-4 py-3 text-[13.5px] font-semibold text-tx-1">Penduduk</h2>
+                <div className="max-h-[260px] space-px overflow-y-auto p-1.5">
                   {residents.map((r) => (
                     <button
                       key={r.id}
                       onClick={() => setPilih(pilih === r.id ? null : r.id)}
                       className={cn(
                         "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors",
-                        pilih === r.id ? "bg-accent-tint" : "hover:bg-surf-2"
+                        pilih === r.id ? "bg-sunken ring-1 ring-line" : "hover:bg-sunken/60"
                       )}
                     >
-                      <span
-                        className={cn(
-                          "size-2 shrink-0 rounded-full",
-                          r.menggantung > 0 ? "bg-bad" : r.status === "kerja" ? "bg-ok" : "bg-idle"
-                        )}
-                      />
+                      <StatusDot tone={r.menggantung > 0 ? "bad" : r.status === "kerja" ? "ok" : "idle"} size={8} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] text-tx-1">{r.id}</span>
                         <span className="block truncate text-[11px] text-tx-3">
                           {r.tugas ?? r.peran}
                         </span>
                       </span>
-                      <span className="shrink-0 text-[11px] tabular-nums text-tx-3">
+                      <span className="num shrink-0 text-[11px] text-tx-3">
                         {r.kirim}↑ {r.terima}↓
                         {r.menggantung > 0 && <span className="text-bad"> ·{r.menggantung}</span>}
                       </span>
@@ -221,13 +211,13 @@ export default function TownPage() {
                 </div>
               </div>
 
-              <div className="panel rounded-2xl p-4">
-                <h2 className="mb-2 text-[13px] font-semibold text-tx-1">Denyut</h2>
-                <div className="well max-h-[300px] space-y-2 overflow-y-auto rounded-xl p-2">
+              <div className="panel overflow-hidden rounded-xl">
+                <h2 className="border-b border-line px-4 py-3 text-[13.5px] font-semibold text-tx-1">Denyut</h2>
+                <div className="max-h-[320px] divide-y divide-line-soft overflow-y-auto">
                   {(data?.activity ?? [])
                     .filter((a) => !pilih || a.from === pilih || a.to === pilih)
                     .map((a, i) => (
-                      <div key={i} className="rounded-lg px-2 py-1.5">
+                      <div key={i} className="px-4 py-2.5">
                         <div className="flex items-center gap-1.5 text-[12px] text-tx-2">
                           <span className="font-medium text-tx-1">{a.from}</span>
                           <ArrowRight size={11} className="text-tx-3" />
@@ -251,7 +241,7 @@ export default function TownPage() {
                       </div>
                     ))}
                   {(data?.activity ?? []).length === 0 && (
-                    <p className="px-2 py-3 text-[12px] text-tx-3">
+                    <p className="px-4 py-3 text-[12px] text-tx-3">
                       Sepi. Belum ada handoff tercatat.
                     </p>
                   )}
@@ -261,7 +251,7 @@ export default function TownPage() {
           </div>
 
           {(stats?.pending ?? 0) > 0 && (
-            <div className="panel flex items-start gap-2 rounded-xl border-l-2 border-bad p-3">
+            <div className="flex items-start gap-2.5 rounded-md border border-bad/40 bg-bad-tint p-3.5">
               <Home size={15} className="mt-0.5 shrink-0 text-bad" />
               <p className="text-[13px] text-tx-2">
                 <span className="font-medium text-tx-1">{stats?.pending} handoff belum pulang.</span>{" "}
@@ -277,19 +267,15 @@ export default function TownPage() {
   );
 }
 
-function Angka({
-  ikon, label, v, bahaya,
-}: { ikon: React.ReactNode; label: string; v: number; bahaya?: boolean }) {
+function Angka({ label, v, bahaya }: { label: string; v: number; bahaya?: boolean }) {
   return (
-    <span
-      className={cn(
-        "raised flex items-center gap-1.5 rounded-lg px-2.5 py-1.5",
-        bahaya ? "text-bad" : "text-tx-2"
-      )}
-    >
-      {ikon}
-      <span className="font-semibold tabular-nums text-tx-1">{v}</span>
-      <span className="text-tx-3">{label}</span>
-    </span>
+    <div className="panel relative overflow-hidden rounded-xl px-4 py-3.5">
+      <span aria-hidden className={cn("absolute inset-x-0 top-0 h-[2px]", bahaya ? "bg-bad" : "bg-line")} />
+      <p className="kicker flex items-center gap-2">
+        {bahaya && <StatusDot tone="bad" size={7} />}
+        {label}
+      </p>
+      <p className={cn("num mt-2 text-[26px] font-medium leading-none", bahaya ? "text-bad" : "text-tx-1")}>{v}</p>
+    </div>
   );
 }
